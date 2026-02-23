@@ -3,7 +3,8 @@ declare global {
     employee_pk: number;
     last_name: string;
     first_name: string;
-    middle_name: string | null
+    middle_name: string | null;
+    designation: string
   }
 }
 

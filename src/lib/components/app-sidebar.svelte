@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import House from "@lucide/svelte/icons/house";
+  import { House, Users } from "@lucide/svelte/icons";
 
   const data = {
     user: {
@@ -10,8 +10,13 @@
     navMain: [
       {
         title: "Home",
-        url: "#",
+        url: "/",
         icon: House,
+      },
+      {
+        title: "Employees",
+        url: "/employees",
+        icon: Users,
       },
     ],
   };

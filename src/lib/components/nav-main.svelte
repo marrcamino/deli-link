@@ -1,5 +1,6 @@
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
+  import { page } from "$app/state";
 
   let {
     items,
@@ -10,13 +11,23 @@
       // this should be `Component` after @lucide/svelte updates types
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       icon?: any;
-      isActive?: boolean;
       items?: {
         title: string;
         url: string;
       }[];
     }[];
   } = $props();
+
+  const isActive = (path: string) => {
+    const currentPath = page.url.pathname;
+
+    // Handle Home separately (exact match)
+    if (path === "/") return currentPath === "/";
+
+    // Check if the current path starts with the link path
+    // AND is followed by a slash or the end of the string
+    return currentPath === path || currentPath.startsWith(`${path}/`);
+  };
 </script>
 
 <Sidebar.Group>
@@ -25,7 +36,7 @@
     {#each items as item (item.title)}
       <Sidebar.MenuItem>
         <Sidebar.MenuButton
-          isActive={item.isActive}
+          isActive={isActive(item.url)}
           tooltipContent={item.title}
         >
           {#snippet child({ props })}

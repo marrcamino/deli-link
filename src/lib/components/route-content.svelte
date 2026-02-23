@@ -1,11 +1,10 @@
 <script lang="ts">
+  import { Separator } from "$lib/components/ui/separator/index.js";
   import {
     SidebarTrigger,
     useSidebar,
   } from "$lib/components/ui/sidebar/index.js";
-  import { Separator } from "$lib/components/ui/separator/index.js";
   import type { Snippet } from "svelte";
-
   interface Props {
     header?: Snippet;
     children: Snippet<[]>;
@@ -13,8 +12,6 @@
   }
 
   let { header, noHeader, children }: Props = $props();
-
-  let isOpen = useSidebar();
 </script>
 
 <div class="absolute inset-0 overflow-auto">
@@ -23,8 +20,8 @@
       class="h-14 sticky left-0 top-0 bg-background border-b right-0 overflow-hidden"
     >
       <div
-        class="md:data-[open=true]:w-[calc(100dvw-var(--sidebar-width))] flex items-center gap-2 px-4 py-2 h-14 absolute top-0 z-1 md:w-[calc(100dwv-(--sidebar-width-icon))] md:transition-[left,right,width] md:duration-200 ease-linear w-dvw duration-0 transition-none"
-        data-open={isOpen}
+        class="flex items-center md:w-[calc(100dvw-var(--sidebar-width-icon))] md:data-[open=true]:w-[calc(100dvw-12rem)] gap-2 px-4 py-2 h-14 absolute top-0 z-1 w-dvw md:transition-[left,right,width] md:duration-150 ease-out duration-0 transition-none"
+        data-open={useSidebar().open}
       >
         <SidebarTrigger
           class="-ms-1 md:hidden text-primary focus-visible:ring-2"

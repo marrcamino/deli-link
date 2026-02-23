@@ -5,10 +5,11 @@ pub fn employee_migration() -> Migration {
         version: 1,
         description: "create_employee_table",
         sql: r#"CREATE TABLE IF NOT EXISTS employee (
-                employee_pk INTEGER NOT NULL PRIMARY KEY,
+                employee_pk INTEGER NOT NULL PRIMARY KEY UNIQUE,
                 last_name TEXT NOT NULL,
                 first_name TEXT NOT NULL,
-                middle_name TEXT
+                middle_name TEXT,
+                designation TEXT
             );
         "#,
         kind: MigrationKind::Up,
