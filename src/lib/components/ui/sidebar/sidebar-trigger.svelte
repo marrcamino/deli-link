@@ -46,8 +46,9 @@
     <path
       d="m8 9 3 3-3 3"
       data-open={sidebar.open}
-      class="origin-center transition-transform data-[open=true]:-scale-x-100 data-[open=true]:-translate-x-1.25"
+      data-openMobile={sidebar.openMobile}
+      class="origin-center transition-transform data-[openMobile=true]:-scale-x-100 data-[open=true]:-scale-x-100 data-[open=true]:-translate-x-1.25 data-[openMobile=true]:-translate-x-1.25"
     />
   </svg>
-  <span class="sr-only">Toggle Sidebar</span>
+  <span class="sr-only">Toggle Sidebar {sidebar.openMobile}</span>
 </Button>

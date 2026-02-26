@@ -9,7 +9,7 @@ let dbInstance: Database | null = null;
  * The "One Function" to get database instance.
  * It opens the connection only if it hasn't been opened yet.
  */
-export async function getDbConn() {
+export async function getDBConn() {
   if (dbInstance) return dbInstance
 
   dbInstance = await Database.load("sqlite:database.sqlite");

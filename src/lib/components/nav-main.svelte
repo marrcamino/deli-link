@@ -38,6 +38,7 @@
         <Sidebar.MenuButton
           isActive={isActive(item.url)}
           tooltipContent={item.title}
+          class="data-[active=true]:text-primary"
         >
           {#snippet child({ props })}
             <a href={item.url} {...props}> <item.icon />{item.title}</a>

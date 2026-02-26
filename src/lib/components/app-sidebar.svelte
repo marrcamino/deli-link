@@ -14,8 +14,8 @@
         icon: House,
       },
       {
-        title: "Employees",
-        url: "/employees",
+        title: "Users",
+        url: "/users",
         icon: Users,
       },
     ],
