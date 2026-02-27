@@ -46,10 +46,6 @@
   let showDiscardAlert = $state(false);
   let cancelAlert = false;
 
-  let easyClose = $derived(id !== "" ? "ignore" : "close") as
-    | "ignore"
-    | "close";
-
   const oninput = useDebounce(async () => {
     /**
      * Won't check in edit mode.
@@ -166,7 +162,7 @@
   });
 
   function handleMainAttemptClose(e: Event) {
-    if (Number(id) !== 0) {
+    if (!user && Number(id) !== 0) {
       e.preventDefault(); // Stop the Main Dialog from closing
       cancelAlert = false;
       showDiscardAlert = true; // Open the Alert instead

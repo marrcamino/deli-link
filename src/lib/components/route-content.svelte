@@ -20,7 +20,7 @@
       class="h-14 sticky left-0 top-0 bg-background border-b right-0 overflow-hidden"
     >
       <div
-        class="flex items-center md:w-[calc(100dvw-var(--sidebar-width-icon))] md:data-[open=true]:w-[calc(100dvw-12rem)] gap-2 px-4 py-2 h-14 absolute top-0 z-1 w-dvw md:transition-[left,right,width] md:duration-150 ease-out duration-0 transition-none"
+        class="flex items-center md:w-[calc(100dvw-var(--sidebar-width-icon))] md:data-[open=true]:w-[calc(100dvw-12rem)] gap-2 px-4 py-2 h-14 absolute top-0 z-1 w-dvw md:transition-[left,right,width] md:duration-300 md:ease-in-out transition-none "
         data-open={useSidebar().open}
       >
         <SidebarTrigger

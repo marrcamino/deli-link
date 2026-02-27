@@ -17,8 +17,24 @@ pub fn employee_migration() -> Migration {
     }
 }
 
+pub fn log_migration() -> Migration {
+    Migration {
+        version: 1,
+        description: "create_log_table",
+        sql: r#"CREATE TABLE log (
+                log_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                user_fk INTEGER REFERENCES user (user_pk) ON DELETE CASCADE NOT NULL,
+                date TEXT (10) NOT NULL,
+                time TEXT (8)  NOT NULL
+            );
+        "#,
+        kind: MigrationKind::Up,
+    }
+}
+
 pub fn all_migrations() -> Vec<Migration> {
     vec![
         // employee_migration(),
+        // log_migration(),
     ]
 }

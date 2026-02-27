@@ -1,5 +1,5 @@
 <script lang="ts" module>
-  import { House, Users } from "@lucide/svelte/icons";
+  import { House, Users, CalendarDays } from "@lucide/svelte/icons";
 
   const data = {
     user: {
@@ -14,9 +14,14 @@
         icon: House,
       },
       {
-        title: "Users",
+        title: "User List",
         url: "/users",
         icon: Users,
+      },
+      {
+        title: "Daily Time Record",
+        url: "/dtr",
+        icon: CalendarDays,
       },
     ],
   };

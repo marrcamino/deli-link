@@ -4,9 +4,9 @@
   import { UserPlus } from "@lucide/svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
-  import DeleteUserAlertDialog from "./components/delete-user-alert-dialog.svelte";
-  import Tbl from "./components/table/tbl.svelte";
-  import UserAddEditDialog from "./components/user-add-edit-dialog.svelte";
+  import Tbl from "./_components/_table/tbl.svelte";
+  import DeleteUserAlertDialog from "./_components/delete-user-alert-dialog.svelte";
+  import UserAddEditDialog from "./_components/user-add-edit-dialog.svelte";
   import { setUserContext } from "./context.svelte";
 
   const context = setUserContext();

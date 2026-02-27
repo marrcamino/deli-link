@@ -1,10 +1,7 @@
 <script lang="ts">
+  import RouteContent from "$lib/components/route-content.svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
-  import RouteContent from "$lib/components/route-content.svelte";
-  import { Window } from "@tauri-apps/api/window";
-  import { Webview } from "@tauri-apps/api/webview";
-  import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
   onMount(async () => {
     await getCurrentWindow().setTitle("Home");
