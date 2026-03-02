@@ -16,6 +16,19 @@
     "core:window:default",
     "core:window:allow-set-enabled",
     "core:window:allow-set-focus",
-    "core:window:allow-set-title"
+    "core:window:allow-set-title",
+    "fs:allow-read-text-file",
+    "fs:allow-read-file",
+    "fs:allow-exists",
+    "fs:default",
+    "dialog:allow-open",
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        {
+          "path": "$HOME/**/*"
+        }
+      ]
+    }
   ]
 }

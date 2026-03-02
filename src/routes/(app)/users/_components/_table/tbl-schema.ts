@@ -1,6 +1,6 @@
 import TblCellValue from "$lib/components/tbl-cell-value.svelte";
 import { renderComponent } from "$lib/components/ui/data-table/index.js";
-import { formatFullName } from "$lib/name-formatter";
+import { formatFullName } from "$lib/utils/name-formatter";
 import type { ColumnDef } from "@tanstack/table-core";
 import TblActions from "./tbl-actions.svelte";
 

@@ -7,11 +7,14 @@ CREATE TABLE IF NOT EXISTS user (
   extension TEXT,
   designation TEXT
 );
-
 CREATE TABLE IF NOT EXISTS log (
   log_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   user_fk INTEGER NOT NULL,
   date TEXT(10) NOT NULL,
   time TEXT(8) NOT NULL,
   FOREIGN KEY (user_fk) REFERENCES user (user_pk) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS user_pref (
+  pref_key INTEGER PRIMARY KEY UNIQUE NOT NULL,
+  pref_value TEXT
 );

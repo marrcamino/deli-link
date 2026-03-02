@@ -4,7 +4,7 @@
     type WithoutChild,
     type WithoutChildrenOrChild,
     type WithoutChildren,
-  } from "$lib/utils.js";
+  } from "$lib/utils";
   import XIcon from "@lucide/svelte/icons/x";
   import { Dialog as DialogPrimitive } from "bits-ui";
   import type { ComponentProps, Snippet } from "svelte";
