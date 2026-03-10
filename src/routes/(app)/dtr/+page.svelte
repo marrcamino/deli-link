@@ -1,11 +1,12 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import RouteContent from "$lib/components/route-content.svelte";
+  import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import * as Tabs from "$lib/components/ui/tabs/index.js";
   import { setUserPref } from "$lib/helper";
-  import { ArrowUpDown, Import, LayoutGrid, Users } from "@lucide/svelte";
+  import { Import } from "@lucide/svelte";
   import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onDestroy, onMount, untrack } from "svelte";
@@ -13,17 +14,18 @@
   import SelectMonthDialog from "./_components/select-month-dialog.svelte";
   import TabLogsActions from "./_tab-logs/actions.svelte";
   import TabLogsContent from "./_tab-logs/content.svelte";
+  import LogsTools from "./_tab-logs/logs-tools.svelte";
   import TabUsersActions from "./_tab-users/actions.svelte";
   import TabUsersContent from "./_tab-users/content.svelte";
   import { setDTRContext } from "./context.svelte";
-  import LogsTools from "./_tab-logs/logs-tools.svelte";
+  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
 
   type TabKey = "users" | "logs";
 
   let tab: string = $state("");
   let { data }: PageProps = $props();
 
-  const context = setDTRContext();
+  const ctx = setDTRContext();
 
   async function setTab(tab: TabKey) {
     goto(`/dtr?tab=${tab}`, {
@@ -59,14 +61,14 @@
       if (e.payload.type === "drop") {
         if (tab === "users") {
           // This makes sure user knows of what month of logs will be parse
-          context.openMonthSelector(e.payload);
+          ctx.openMonthSelector(e.payload);
           return;
         }
-        context.handleFileDrop(e.payload);
+        ctx.handleFileDrop(e.payload);
       }
     });
 
-    context.fetchUserLog();
+    ctx.fetchUserLog();
   });
 
   onDestroy(() => unlistenDrag?.());
@@ -97,12 +99,44 @@
   </Dialog.Content>
 </Dialog.Root>
 
+<AlertDialog.Root
+  bind:open={ctx.missingIdDialogState}
+  onOpenChangeComplete={(isOpen) => {
+    if (!isOpen) ctx.missingIds = [];
+  }}
+>
+  <AlertDialog.Content class="sm:max-w-100 ">
+    <AlertDialog.Header>
+      <AlertDialog.Title>Missing Users Detected</AlertDialog.Title>
+      <AlertDialog.Description>
+        <p>The following machine IDs do not exist in the system:</p>
+
+        <ScrollArea viewPortClasses="max-h-37.5" type="always" class="mt-4 mb-0.5">
+          <ul class="space-y-1 pr-3">
+            {#each ctx.missingIds as user}
+              <li
+                class="flex justify-between items-center px-2 py-1 shadow-sm rounded-md bg-accent"
+              >
+                <span class="font-medium">Name: {user.name}</span>
+                <span class="">ID: {user.user_fk}</span>
+              </li>
+            {/each}
+          </ul>
+        </ScrollArea>
+
+        <p>Please add these users first before importing logs</p>
+      </AlertDialog.Description>
+    </AlertDialog.Header>
+    <AlertDialog.Footer>
+      <AlertDialog.Cancel>Close</AlertDialog.Cancel>
+    </AlertDialog.Footer>
+  </AlertDialog.Content>
+</AlertDialog.Root>
+
 <SelectMonthDialog />
 
-<RouteContent>
+<RouteContent bind:contentRef={ctx.pageContent}>
   {#snippet header()}
-    <!-- <div class="font-semibold">Daily Time Record</div> -->
-
     <Tabs.Root
       bind:value={tab}
       onValueChange={async (value) => await setTab(value as TabKey)}
@@ -131,10 +165,7 @@
       {:else}
         <TabLogsActions />
       {/if}
-      <Button
-        class="ml-auto"
-        onclick={async () => await context.importLogFile()}
-      >
+      <Button class="ml-auto" onclick={async () => await ctx.importLogFile()}>
         <Import />
         Import Logs
       </Button>

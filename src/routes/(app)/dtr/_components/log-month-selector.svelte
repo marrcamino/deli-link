@@ -20,7 +20,7 @@
   }
   let { id, width, ...restProps }: Props = $props();
 
-  const context = getDTRContext();
+  const ctx = getDTRContext();
   const frameworks = mapToOptions(MONTHS_MAP);
 
   let open = $state(false);
@@ -28,7 +28,7 @@
   let triggerRef = $state<HTMLButtonElement>(null!);
 
   const selectedValue = $derived(
-    frameworks.find((f) => f.value === context.selectedMonth)?.label,
+    frameworks.find((f) => f.value === ctx.selectedMonth)?.label,
   );
 
   function closeAndFocusTrigger() {
@@ -44,8 +44,8 @@
   onOpenChangeComplete={(isOpen) => {
     if (isOpen) return;
 
-    if (context.selectedMonth === "") {
-      context.selectedMonth = context.current_month.toString() as any;
+    if (ctx.selectedMonth === "") {
+      ctx.selectedMonth = ctx.current_month.toString() as any;
     }
   }}
 >
@@ -68,8 +68,8 @@
       </Button>
     {/snippet}
   </Popover.Trigger>
-  <Popover.Content  class={cn("w-40 p-0", width)}>
-    <Command.Root bind:value={context.selectedMonth} disablePointerSelection>
+  <Popover.Content class={cn("w-40 p-0", width)}>
+    <Command.Root bind:value={ctx.selectedMonth} disablePointerSelection>
       <Command.Input placeholder="Select Month..." />
       <Command.List>
         <Command.Empty>No month found.</Command.Empty>
@@ -77,18 +77,18 @@
           {#each frameworks as framework (framework.value)}
             <Command.Item
               class="hover:bg-accent mb-1"
-              disabled={parseInt(framework.value) > context.current_month}
+              disabled={parseInt(framework.value) > ctx.current_month}
               value={framework.value}
               keywords={[framework.label]}
-              onSelect={() => {
-                context.selectedMonth = framework.value as any;
+              onSelect={async () => {
+                ctx.selectedMonth = framework.value as any;
                 closeAndFocusTrigger();
+                await ctx.fetchUserLog();
               }}
             >
               <CheckIcon
                 class={cn(
-                  context.selectedMonth !== framework.value &&
-                    "text-transparent",
+                  ctx.selectedMonth !== framework.value && "text-transparent",
                 )}
               />
               {framework.label}

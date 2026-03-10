@@ -2,7 +2,7 @@ import { NativeDateHelper } from "$lib/utils/date-utils";
 import type { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
-import { getContext, setContext, untrack } from "svelte";
+import { getContext, setContext, tick, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 import Papa from 'papaparse'
 import { getDBConn } from "$lib/db";
@@ -12,7 +12,8 @@ import { MONTHS_MAP } from "$lib/constants/months";
 const CONTEXT_KEY = Symbol("dtr-context");
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 type MonthIndexString = `${MonthIndex}` | ''
-export type UserWithLog = User & Omit<Log, "user_pk">
+type MachineUserLog = Omit<Log, "log_pk"> & { name: string }
+export type UserWithLog = User & Omit<Log, "user_fk">
 
 interface ValidationResult {
   isValid: boolean
@@ -31,20 +32,20 @@ class ParserAndDecoder {
     return new TextDecoder("utf-16le").decode(new Uint8Array(bytes));
   }
 
-  protected parseLogsToArray(rawText: string, monthIndex?: number): Omit<Log, "log_pk">[] {
+  protected parseLogsToArray(rawText: string, monthIndex?: number): MachineUserLog[] {
     const result = Papa.parse(rawText, {
       header: true,
       delimiter: '\t',
       skipEmptyLines: true,
     })
 
-    const logs: Omit<Log, "log_pk">[] = result.data
+    const logs: MachineUserLog[] = result.data
       .map((row: any) => {
         const user_fk = Number(row.UserId)
         const dateTime = row.DateTime.trim() // "2026-01-12  19:16:39"
         const [date, time] = dateTime.split(/\s+/)
 
-        return { user_fk, date, time }
+        return { user_fk, date, time, name: row.Name }
       })
       // filter by month if monthIndex is provided
       .filter(log => {
@@ -52,7 +53,6 @@ class ParserAndDecoder {
         const month = Number(log.date.split('-')[1]) - 1
         return month === monthIndex
       })
-
     return logs
   }
 }
@@ -116,12 +116,18 @@ class DTRContext extends FileValidator {
   // Only used when user IMPORT and the open tab is "users"
   private filePath: string | null = null;
 
-  // ACTION VALUES
-  sortDateVal = $state('latest')
-  sortNameVal = $state('az')
-  groupVal = $state('none')
+  pageContent: HTMLDivElement | undefined = $state(undefined);
 
-  userLogs: UserWithLog[] = $state([])
+  // ACTION VALUES
+  sortDateVal: "latest" | "oldest" = $state('latest')
+  sortNameVal: "none" | "az" | "za" = $state('none')
+  groupVal = $state('none')
+  selectedUser = $state("all")
+
+  missingIdDialogState = $state(false)
+  missingIds: MachineUserLog[] = $state([])
+  rawUserLogs: UserWithLog[] = $state([])
+  filteredUserLogs: UserWithLog[] = $state([])
   logPreviewDialog = $state(false);
   monthSelectDialog = $state(false)
   selectedMonth = $state(this.current_month.toString()) as MonthIndexString;
@@ -178,8 +184,36 @@ class DTRContext extends FileValidator {
     return (parseInt(this.selectedMonth) + 1).toString().padStart(2, "0");
   }
 
-  private async saveLogs(logs: Omit<Log, "log_pk">[]) {
+  private async saveLogs(logs: MachineUserLog[]) {
+
+    if (!logs.length) {
+      toast.error(`No logs found for the month of ${MONTHS_MAP[parseInt(this.selectedMonth)]}`)
+      return
+    }
+
+    const logMap = new Map<number, MachineUserLog>()
+
     const db = await getDBConn();
+    for (const log of logs) {
+      if (!logMap.has(log.user_fk)) logMap.set(log.user_fk, log)
+    }
+
+    // Check if all of the user exist in the database
+    for (const [user_fk, user] of logMap) {
+      const res = await db.select("SELECT EXISTS(SELECT 1 FROM user WHERE user_pk = ?) AS user_exists", [user_fk]) as any
+
+      if (!res[0]?.user_exists) {
+        this.missingIds.push(user)
+      }
+    }
+    // Open dialog if have missing IDs
+    if (this.missingIds.length) {
+      this.missingIdDialogState = true
+      return
+    }
+
+
+    // ACTUAL INSERT PROCESS
     let oldLogsAreDeleted = false
     try {
       await db.execute("BEGIN TRANSACTION")
@@ -222,9 +256,19 @@ class DTRContext extends FileValidator {
     }
   }
 
+  scrollUpContent() {
+    tick().then(() => {
+      this.pageContent?.scroll({
+        top: 0,
+        behavior: "smooth",
+      });
+    })
+  }
+
+
   async fetchUserLog() {
     const db = await getDBConn();
-    this.userLogs = await db.select<UserWithLog[]>(`
+    this.rawUserLogs = await db.select<UserWithLog[]>(`
       SELECT 
         log.log_pk, 
         log.date, 
@@ -234,10 +278,19 @@ class DTRContext extends FileValidator {
       JOIN user ON log.user_fk = user.user_pk
       WHERE strftime('%m', log.date) = ?
       AND strftime('%Y', log.date) = ?
+      ORDER BY log.date DESC
     `, [
       this.selectedMonthToTwoDigitString(),
       NativeDateHelper.currentYear
     ]);
+
+    this.filteredUserLogs = this.sortLogs(
+      this.rawUserLogs,
+      'none',
+      'latest'
+    )
+    await tick()
+    this.scrollUpContent()
   }
 
   async importLogFile() {
@@ -267,13 +320,136 @@ class DTRContext extends FileValidator {
     await this.decodeValidateSetFileContentsSaveToDB(path);
   }
 
-  openMonthSelector(payloadOrPath: PayLoad | string) {
+  // #region SORTERS
+  // sortByDate(
+  //   arr: UserWithLog[],
+  //   order: "ASC" | "DESC" = "ASC"
+  // ): UserWithLog[] {
+  //   return [...arr].sort((a, b) => {
+  //     const dateTimeA = new Date(`${a.date}T${a.time}`).getTime();
+  //     const dateTimeB = new Date(`${b.date}T${b.time}`).getTime();
 
+  //     return order === "ASC"
+  //       ? dateTimeA - dateTimeB
+  //       : dateTimeB - dateTimeA;
+  //   });
+  // }
+
+  sortByLastName(
+    arr: UserWithLog[],
+    order: "ASC" | "DESC" = "ASC"
+  ): UserWithLog[] {
+    return [...arr].sort((a, b) =>
+      order === "ASC"
+        ? a.last_name.localeCompare(b.last_name)
+        : b.last_name.localeCompare(a.last_name)
+    );
+  }
+
+  sortLogs(
+    arr: UserWithLog[],
+    sortNameVal: "none" | "az" | "za",
+    sortDateVal: "latest" | "oldest"
+  ): UserWithLog[] {
+    return [...arr].sort((a, b) => {
+
+      // NAME SORT
+      if (sortNameVal !== "none") {
+        const nameCompare =
+          sortNameVal === "az"
+            ? a.last_name.localeCompare(b.last_name)
+            : b.last_name.localeCompare(a.last_name);
+
+        if (nameCompare !== 0) return nameCompare;
+      }
+
+      // DATE + TIME SORT
+      const aDT = `${a.date} ${a.time}`;
+      const bDT = `${b.date} ${b.time}`;
+
+      return sortDateVal === "latest"
+        ? bDT.localeCompare(aDT)
+        : aDT.localeCompare(bDT);
+    });
+  }
+  // #endregion
+
+  getDistinctUsers(userFromParam?: UserWithLog[], visibleOnly = false) {
+    const map = new Map<number, UserWithLog>();
+
+    for (const row of userFromParam ?? this.rawUserLogs) {
+      if (!map.has(row.user_pk)) {
+        map.set(row.user_pk, row);
+      }
+    }
+
+    if (visibleOnly && this.selectedUser !== "all") {
+      return Array.from(map.values()).filter(u => u.user_pk === parseInt(this.selectedUser))
+    }
+
+    return Array.from(map.values())
+  }
+
+  getDistinctDays() {
+    const sets = new Set<string>()
+
+    for (const day of this.filteredUserLogs) {
+      if (!sets.has(day.date)) sets.add(day.date)
+    }
+    return [...sets]
+  }
+
+  openMonthSelector(payloadOrPath: PayLoad | string) {
     if (typeof payloadOrPath === 'object') {
       this.payload = payloadOrPath
     } else this.filePath = payloadOrPath
 
     this.monthSelectDialog = true
+  }
+
+  applyFilters() {
+    let newFilteredUserLogs = this.filteredUserLogs
+
+    // FOR USER DROPDOWN 
+    if (this.selectedUser === "all") {
+      newFilteredUserLogs = this.rawUserLogs;
+    } else {
+      // Reset groupVal & sortNameVal if there a specific user to display
+      if (this.groupVal === 'name') this.groupVal = "none"
+      this.sortNameVal = "none";
+
+      newFilteredUserLogs = this.rawUserLogs.filter(
+        (u) => u.user_pk === parseInt(this.selectedUser),
+      );
+    }
+
+    newFilteredUserLogs = this.sortLogs(
+      newFilteredUserLogs,
+      this.sortNameVal,
+      this.sortDateVal
+    );
+
+    this.filteredUserLogs = newFilteredUserLogs
+  }
+
+  resetSortFilters() {
+    this.sortDateVal = "latest";
+    this.sortNameVal = "none";
+  }
+
+  resetAllFilters() {
+    this.resetSortFilters()
+    this.groupVal = "none";
+    this.selectedUser = "all";
+    this.filteredUserLogs = this.sortLogs(
+      this.rawUserLogs,
+      this.sortNameVal,
+      this.sortDateVal
+    );
+  }
+
+  getSpecificUserLogs(user_pk: number) {
+    return this.filteredUserLogs.filter(u => u.user_pk === user_pk)
   }
 }
 

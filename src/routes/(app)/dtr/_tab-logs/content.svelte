@@ -2,63 +2,44 @@
   import { Button } from "$lib/components/ui/button/index.js";
   import * as Empty from "$lib/components/ui/empty/index.js";
   import { MONTHS_MAP } from "$lib/constants/months";
-  import {
-    FolderClock,
-    CalendarArrowDown,
-    CalendarArrowUp,
-  } from "@lucide/svelte";
-  import { getDTRContext, type UserWithLog } from "../context.svelte";
-  import { formatFullName } from "$lib/utils/name-formatter";
-  import { formatDate } from "$lib/utils/date-utils";
   import { formatTime } from "$lib/utils";
-  import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
-  import { Label } from "$lib/components/ui/label/index.js";
-  import { untrack } from "svelte";
+  import { formatDate } from "$lib/utils/date-utils";
+  import { formatFullName } from "$lib/utils/name-formatter";
+  import { FolderClock } from "@lucide/svelte";
+  import { getDTRContext, type UserWithLog } from "../context.svelte";
 
-  const context = getDTRContext();
-
-  let logs: UserWithLog[] = $state([]);
-
-  $effect(() => {
-    context.userLogs;
-    untrack(() => {
-      logs = context.userLogs;
-    });
-  });
+  const ctx = getDTRContext();
 </script>
 
-<!-- ALWAYS SHOW THE LATEST FIRST -->
-
-<!-- 
-SORT
-- latest 
-- oldest
-- A-Z
-- Z-A
--->
-
-<!-- ## GROUP -->
-<!-- 
- BY DATE
- - list of employee 
- name | time
--->
-
-<!-- 
-People
-- list of date
-date | time
--->
-
-<div class="rounded-xl px-3 py-2 border">
-  {#each logs as userLog}
-    <div
-      class="grid grid-cols-3 gap-4 rounded-md mt-1.5 px-2 py-1 bg-accent/50 first:mt-1"
-    >
-      <div>{formatFullName(userLog, { abbreviateMiddle: true })}</div>
-      <div>{formatDate(userLog.date)}</div>
-      <div>{formatTime(userLog.time)}</div>
-    </div>
+<div class="rounded-xl px-3 py-2 border pb-4">
+  {#if ctx.filteredUserLogs.length}
+    {#if ctx.groupVal !== "none"}
+      {#if ctx.groupVal === "name"}
+        {#each ctx.getDistinctUsers(undefined, true) as user}
+          <div class="mt-8 first:mt-4 place-self-center-safe">
+            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">{formatFullName(user)}</div>
+            {#each ctx.getSpecificUserLogs(user.user_pk) as userLog}
+              {@render userRow(userLog, "name")}
+            {/each}
+          </div>
+        {/each}
+      {:else}
+        {#each ctx.getDistinctDays() as day}
+          <div class="mt-8 first:mt-4 place-self-center-safe">
+            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">{formatDate(day, "long")}</div>
+            {#each ctx.filteredUserLogs as user}
+              {#if user.date === day}
+                {@render userRow(user, "day")}
+              {/if}
+            {/each}
+          </div>
+        {/each}
+      {/if}
+    {:else}
+      {#each ctx.filteredUserLogs as user}
+        {@render userRow(user)}
+      {/each}
+    {/if}
   {:else}
     <Empty.Root class="border border-dashed max-w-md place-self-center my-8">
       <Empty.Header>
@@ -72,9 +53,9 @@ date | time
           No logs found for
           <span
             class="data-withValue:italic"
-            data-withValue={context.selectedMonth ? null : ""}
+            data-withValue={ctx.selectedMonth ? null : ""}
           >
-            {MONTHS_MAP[parseInt(context.selectedMonth)] || "month name"}
+            {MONTHS_MAP[parseInt(ctx.selectedMonth)] || "month name"}
           </span>.
           <br />
           You can <strong>drag & drop</strong> your attendance TXT file here or click
@@ -86,11 +67,26 @@ date | time
         <Button
           variant="outline"
           size="sm"
-          onclick={async () => await context.importLogFile()}
+          onclick={async () => await ctx.importLogFile()}
         >
           Import Logs
         </Button>
       </Empty.Content>
     </Empty.Root>
-  {/each}
+  {/if}
 </div>
+
+{#snippet userRow(user: UserWithLog, hideColumn = "")}
+  <div
+    data-two={hideColumn !== "" ? "name" : null}
+    class="grid grid-cols-3 gap-4 data-two:w-sm data-two:grid-cols-2 data-two:-translate-y-2 first:mt-1 rounded-md mt-1.5 px-2 py-1 bg-accent/50 "
+  >
+    {#if hideColumn !== "name"}
+      <div>{formatFullName(user, { abbreviateMiddle: true })}</div>
+    {/if}
+    {#if hideColumn !== "day"}
+      <div>{formatDate(user.date)}</div>
+    {/if}
+    <div>{formatTime(user.time)}</div>
+  </div>
+{/snippet}

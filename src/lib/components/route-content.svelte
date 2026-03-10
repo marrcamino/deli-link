@@ -5,22 +5,33 @@
     useSidebar,
   } from "$lib/components/ui/sidebar/index.js";
   import type { Snippet } from "svelte";
+
   interface Props {
     header?: Snippet;
     children: Snippet<[]>;
     noHeader?: boolean;
+    contentRef?: HTMLDivElement;
   }
 
-  let { header, noHeader, children }: Props = $props();
+  let {
+    header,
+    noHeader,
+    children,
+    contentRef = $bindable(),
+  }: Props = $props();
 </script>
 
-<div class="absolute inset-0 overflow-auto">
+<div
+  class="absolute inset-0 overflow-auto"
+  id="page-content"
+  bind:this={contentRef}
+>
   {#if !noHeader}
     <header
       class="h-14 sticky left-0 top-0 bg-background border-b z-10 right-0 overflow-hidden"
     >
       <div
-        class="flex items-center md:w-[calc(100dvw-var(--sidebar-width-icon))] md:data-[open=true]:w-[calc(100dvw-12rem)] gap-2 px-4 py-2 h-14 absolute top-0 z-1 w-dvw md:transition-[left,right,width] md:duration-300 md:ease-in-out transition-none "
+        class="flex items-center md:w-[calc(100dvw-var(--sidebar-width-icon))] md:data-[open=true]:w-[calc(100dvw-12rem)] gap-2 px-4 py-2 h-14 absolute top-0 z-1 w-dvw md:transition-[left,right,width] md:duration-300 md:ease-in-out transition-none"
         data-open={useSidebar().open}
       >
         <SidebarTrigger

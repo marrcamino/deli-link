@@ -6,7 +6,7 @@ export async function setUserPref<K extends keyof UserPrefKeys>(
   value: UserPrefKeys[K]
 ) {
   const db = await getDBConn()
-
+  
   await db.execute(
     `
       INSERT OR REPLACE INTO user_pref (pref_key, pref_value)

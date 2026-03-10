@@ -119,9 +119,19 @@
       isSaving = true;
       const db = await getDBConn();
 
-      const result = await db.execute(
-        "UPDATE user SET last_name = ?, first_name = ?, middle_name = ?, extension = ?, designation = ?",
-        [lname, fname, mname || null, extension || null, designation],
+      const user_pk = user!.user_pk;
+
+      const result = await db.execute(`
+        UPDATE user 
+        SET 
+          last_name = ?, 
+          first_name = ?, 
+          middle_name = ?, 
+          extension = ?, 
+          designation = ?
+        WHERE user_pk = ?
+        `,
+        [lname, fname, mname || null, extension || null, designation, user_pk],
       );
 
       if (!result.rowsAffected) {
@@ -254,7 +264,7 @@
             id="mname"
             name="mname"
             bind:value={mname}
-            placeholder="Sanchez"
+            placeholder="Santos"
           />
         </div>
         <div class="grid gap-1">
