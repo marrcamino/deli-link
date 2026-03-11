@@ -4,6 +4,7 @@
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
   import { Button } from "$lib/components/ui/button/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
+  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Tabs from "$lib/components/ui/tabs/index.js";
   import { setUserPref } from "$lib/helper";
   import { Import } from "@lucide/svelte";
@@ -18,11 +19,10 @@
   import TabUsersActions from "./_tab-users/actions.svelte";
   import TabUsersContent from "./_tab-users/content.svelte";
   import { setDTRContext } from "./context.svelte";
-  import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
 
   type TabKey = "users" | "logs";
 
-  let tab: string = $state("");
+  // let ctx.currentTab: string = $state("");
   let { data }: PageProps = $props();
 
   const ctx = setDTRContext();
@@ -38,10 +38,10 @@
   }
 
   $effect(() => {
-    tab;
+    ctx.currentTab;
     untrack(async () => {
       await getCurrentWindow().setTitle(
-        `Daily Time Record - ${tab.toLocaleUpperCase()}`,
+        `Daily Time Record - ${ctx.currentTab.toLocaleUpperCase()}`,
       );
     });
   });
@@ -50,21 +50,21 @@
   let isDragging = $state(false);
 
   onMount(async () => {
-    tab = data.tab;
+    ctx.currentTab = data.tab as any;
 
     await getCurrentWindow().setTitle(
-      `Daily Time Record - ${tab.toLocaleUpperCase()}`,
+      `Daily Time Record - ${ctx.currentTab.toLocaleUpperCase()}`,
     );
 
     unlistenDrag = await getCurrentWebview().onDragDropEvent(async (e) => {
       isDragging = e.payload.type === "over";
       if (e.payload.type === "drop") {
-        if (tab === "users") {
+        if (ctx.currentTab === "users") {
           // This makes sure user knows of what month of logs will be parse
           ctx.openMonthSelector(e.payload);
           return;
         }
-        ctx.handleFileDrop(e.payload);
+        ctx.handleFileDrop(e.payload, true);
       }
     });
 
@@ -138,7 +138,7 @@
 <RouteContent bind:contentRef={ctx.pageContent}>
   {#snippet header()}
     <Tabs.Root
-      bind:value={tab}
+      bind:value={ctx.currentTab}
       onValueChange={async (value) => await setTab(value as TabKey)}
     >
       <div class="flex items-center">
@@ -160,7 +160,7 @@
     </Tabs.Root>
 
     <div class="ml-auto flex items-center gap-1">
-      {#if tab === "users"}
+      {#if ctx.currentTab === "users"}
         <TabUsersActions />
       {:else}
         <TabLogsActions />
@@ -172,11 +172,11 @@
     </div>
   {/snippet}
 
-  {#if tab === "logs"}<LogsTools />{/if}
+  {#if ctx.currentTab === "logs"}<LogsTools />{/if}
 
   <div class="p-4">
     <div class="w-full">
-      <Tabs.Root bind:value={tab}>
+      <Tabs.Root bind:value={ctx.currentTab}>
         <Tabs.Content value="users" class="rounded-xl px-3 py-2 border">
           <TabUsersContent />
         </Tabs.Content>

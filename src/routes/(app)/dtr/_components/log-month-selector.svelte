@@ -84,6 +84,7 @@
                 ctx.selectedMonth = framework.value as any;
                 closeAndFocusTrigger();
                 await ctx.fetchUserLog();
+                ctx.resetAllFilters();
               }}
             >
               <CheckIcon

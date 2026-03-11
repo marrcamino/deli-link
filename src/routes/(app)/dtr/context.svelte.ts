@@ -1,12 +1,13 @@
+import { MONTHS_MAP } from "$lib/constants/months";
+import { getDBConn } from "$lib/db";
+import { setUserPref } from "$lib/helper";
 import { NativeDateHelper } from "$lib/utils/date-utils";
 import type { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
+import Papa from 'papaparse';
 import { getContext, setContext, tick, untrack } from "svelte";
 import { toast } from "svelte-sonner";
-import Papa from 'papaparse'
-import { getDBConn } from "$lib/db";
-import { MONTHS_MAP } from "$lib/constants/months";
 
 
 const CONTEXT_KEY = Symbol("dtr-context");
@@ -123,6 +124,7 @@ class DTRContext extends FileValidator {
   sortNameVal: "none" | "az" | "za" = $state('none')
   groupVal = $state('none')
   selectedUser = $state("all")
+  currentTab: "users" | "logs" | "" = $state('')
 
   missingIdDialogState = $state(false)
   missingIds: MachineUserLog[] = $state([])
@@ -138,34 +140,29 @@ class DTRContext extends FileValidator {
     $effect(() => {
       this.monthSelectDialog;
       untrack(async () => {
+        // THE FOLLOWING CODE WILL RUN IF;
+        // user trigger one of the actions (DROP or IMPORT) where
+        // the tab is 'users'
         if (this.monthSelectDialog) return
 
         // When user used DROP feature
         if (this.payload) {
-          await this.handleFileDrop(this.payload)
-          this.payload = null
+          // Note: handler of drop feature when tab is 'log' is in this main page of DTR
+          await this.handleFileDrop(this.payload, true)
         }
 
         // When user used IMPORT button
         if (this.filePath) {
-
-          await this.decodeValidateSetFileContentsSaveToDB(this.filePath);
-          this.filePath = null
+          this.runAllProcessWithTaost(this.filePath, true)
         }
       })
     });
   }
 
-  private getCurrentTab() {
-    const params = new URLSearchParams(window.location.search);
+  private async decodeValidateSetFileContentsSaveToDB(filePath: string): Promise<string> {
 
-    return params.get("tab") as null | "users" | "logs";
-  }
-
-  private async decodeValidateSetFileContentsSaveToDB(filePath: string) {
     if (!this.fileExtensionIsTextType(filePath)) {
-      toast.error("Invalid file type. Only .TXT files are allowed.")
-      return
+      throw new Error("Invalid file type. Only .TXT files are allowed.");
     }
 
     const contents = await this.decodeFile(filePath);
@@ -173,11 +170,18 @@ class DTRContext extends FileValidator {
     const validation = this.validateFileContent(contents);
 
     if (validation.message) {
-      toast.error(validation.message);
-      return
+      throw new Error(validation.message);
     }
 
-    this.saveLogs(this.parseLogsToArray(contents, parseInt(this.selectedMonth)))
+    const result = await this.saveLogs(
+      this.parseLogsToArray(contents, parseInt(this.selectedMonth))
+    );
+
+    if (!result.success) {
+      throw new Error(result.message);
+    }
+
+    return result.message;
   }
 
   private selectedMonthToTwoDigitString() {
@@ -185,75 +189,89 @@ class DTRContext extends FileValidator {
   }
 
   private async saveLogs(logs: MachineUserLog[]) {
-
-    if (!logs.length) {
-      toast.error(`No logs found for the month of ${MONTHS_MAP[parseInt(this.selectedMonth)]}`)
-      return
-    }
-
-    const logMap = new Map<number, MachineUserLog>()
+    if (!logs.length) return { success: false, message: "No logs found." };
 
     const db = await getDBConn();
+    const logMap = new Map<number, MachineUserLog>();
     for (const log of logs) {
-      if (!logMap.has(log.user_fk)) logMap.set(log.user_fk, log)
+      if (!logMap.has(log.user_fk)) logMap.set(log.user_fk, log);
     }
 
-    // Check if all of the user exist in the database
+    // --- 1. VALIDATION PHASE (No Transaction yet) ---
+    const missingIds: MachineUserLog[] = [];
     for (const [user_fk, user] of logMap) {
-      const res = await db.select("SELECT EXISTS(SELECT 1 FROM user WHERE user_pk = ?) AS user_exists", [user_fk]) as any
-
-      if (!res[0]?.user_exists) {
-        this.missingIds.push(user)
-      }
-    }
-    // Open dialog if have missing IDs
-    if (this.missingIds.length) {
-      this.missingIdDialogState = true
-      return
+      const res = await db.select<{ user_exists: number }[]>(
+        "SELECT EXISTS(SELECT 1 FROM user WHERE user_pk = ?) AS user_exists",
+        [user_fk]
+      );
+      if (!res[0]?.user_exists) missingIds.push(user);
     }
 
+    if (missingIds.length) {
+      this.missingIds = missingIds;
+      this.missingIdDialogState = true; // Safe to open dialog now
+      return { success: false, message: 'Missing user IDs.' };
+    }
 
-    // ACTUAL INSERT PROCESS
-    let oldLogsAreDeleted = false
+    // --- 2. WRITE PHASE (Keep this as fast as possible) ---
     try {
-      await db.execute("BEGIN TRANSACTION")
-
-      // DELETE OLD LOGS
+      await db.execute("BEGIN TRANSACTION");
+      let oldLogsAreDeleted = false
+      // DELETE OLD
       const deleteResult = await db.execute(
-        `DELETE FROM log 
-        WHERE strftime('%m', date) = ? 
-        AND strftime('%Y', date) = ?`,
+        `DELETE FROM log WHERE strftime('%m', date) = ? AND strftime('%Y', date) = ?`,
         [this.selectedMonthToTwoDigitString(), NativeDateHelper.currentYear]
       );
-
-
-      // Set true if there is record deleted, false otherwise
       oldLogsAreDeleted = deleteResult.rowsAffected > 0
 
-      // INSERT NEW LOGS
+      // INSERT NEW
       for (const log of logs) {
-        const res = await db.execute(
+        await db.execute(
           "INSERT INTO log (user_fk, date, time) VALUES (?, ?, ?)",
           [log.user_fk, log.date, log.time]
         );
-
-        if (!res.lastInsertId) {
-          console.error("Naay error sa pag insert: ", log);
-          throw new Error("Insert failed");
-        }
       }
 
-
-      toast.success(`${MONTHS_MAP[parseInt(this.selectedMonth)]} Logs Saved Successfully`, {
-        description: oldLogsAreDeleted ? 'Old logs are overried' : undefined
-      })
-
-      await this.fetchUserLog()
       await db.execute('COMMIT');
+      await this.fetchUserLog()
+      return {
+
+        success: true,
+
+        message: `${MONTHS_MAP[parseInt(this.selectedMonth)]} Logs Saved Successfully! ${oldLogsAreDeleted ? 'Old logs are overried' : ''}`,
+
+      }
     } catch (e) {
-      console.error(e)
-      await db.execute('ROLLBACK');
+      console.error("Database Error:", e);
+      try {
+        await db.execute('ROLLBACK');
+      } catch (rollbackError) {
+        // Ignore rollback errors if transaction wasn't active
+      }
+      return { success: false, message: "An error occurred while saving." };
     }
+  }
+
+  private runAllProcessWithTaost(path: string, switchTabOnFinish = false) {
+    toast.promise(
+      this.decodeValidateSetFileContentsSaveToDB(path),
+      {
+        loading: 'Processing...',
+        success: (message) => {
+          if (switchTabOnFinish) {
+            this.currentTab = 'logs'
+            setUserPref("dtr_open_tab", 'logs');
+            this.filePath = null
+          }
+          this.resetAllFilters()
+          return message
+        },
+        error: (err) => {
+          if (err instanceof Error) return err.message;
+          return "Unknown error";
+        }
+      }
+    )
   }
 
   scrollUpContent() {
@@ -264,7 +282,6 @@ class DTRContext extends FileValidator {
       });
     })
   }
-
 
   async fetchUserLog() {
     const db = await getDBConn();
@@ -306,35 +323,22 @@ class DTRContext extends FileValidator {
 
     if (!filePath) return
 
-    if (this.getCurrentTab() === 'users') {
+    if (this.currentTab === 'users') {
       this.filePath = filePath
       this.monthSelectDialog = true
       return
     }
 
-    await this.decodeValidateSetFileContentsSaveToDB(filePath);
+    this.runAllProcessWithTaost(filePath)
   }
 
-  async handleFileDrop(dropEvent: PayLoad | string) {
+  async handleFileDrop(dropEvent: PayLoad | string, switchTabOnFinish = false) {
     const path = (typeof dropEvent === 'object') ? dropEvent.paths[0] : dropEvent
-    await this.decodeValidateSetFileContentsSaveToDB(path);
+
+    this.runAllProcessWithTaost(path, switchTabOnFinish)
   }
 
   // #region SORTERS
-  // sortByDate(
-  //   arr: UserWithLog[],
-  //   order: "ASC" | "DESC" = "ASC"
-  // ): UserWithLog[] {
-  //   return [...arr].sort((a, b) => {
-  //     const dateTimeA = new Date(`${a.date}T${a.time}`).getTime();
-  //     const dateTimeB = new Date(`${b.date}T${b.time}`).getTime();
-
-  //     return order === "ASC"
-  //       ? dateTimeA - dateTimeB
-  //       : dateTimeB - dateTimeA;
-  //   });
-  // }
-
   sortByLastName(
     arr: UserWithLog[],
     order: "ASC" | "DESC" = "ASC"

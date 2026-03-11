@@ -17,21 +17,29 @@
       {#if ctx.groupVal === "name"}
         {#each ctx.getDistinctUsers(undefined, true) as user}
           <div class="mt-8 first:mt-4 place-self-center-safe">
-            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">{formatFullName(user)}</div>
-            {#each ctx.getSpecificUserLogs(user.user_pk) as userLog}
-              {@render userRow(userLog, "name")}
-            {/each}
+            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">
+              {formatFullName(user)}
+            </div>
+            <div>
+              {#each ctx.getSpecificUserLogs(user.user_pk) as userLog}
+                {@render userRow(userLog, "name")}
+              {/each}
+            </div>
           </div>
         {/each}
       {:else}
         {#each ctx.getDistinctDays() as day}
           <div class="mt-8 first:mt-4 place-self-center-safe">
-            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">{formatDate(day, "long")}</div>
-            {#each ctx.filteredUserLogs as user}
-              {#if user.date === day}
-                {@render userRow(user, "day")}
-              {/if}
-            {/each}
+            <div class="text-lg sticky top-25 pt-2 pb-0.5 bg-background z-5">
+              {formatDate(day, "long")}
+            </div>
+            <div>
+              {#each ctx.filteredUserLogs as user}
+                {#if user.date === day}
+                  {@render userRow(user, "day")}
+                {/if}
+              {/each}
+            </div>
           </div>
         {/each}
       {/if}
@@ -79,7 +87,7 @@
 {#snippet userRow(user: UserWithLog, hideColumn = "")}
   <div
     data-two={hideColumn !== "" ? "name" : null}
-    class="grid grid-cols-3 gap-4 data-two:w-sm data-two:grid-cols-2 data-two:-translate-y-2 first:mt-1 rounded-md mt-1.5 px-2 py-1 bg-accent/50 "
+    class="grid grid-cols-3 gap-4 data-two:w-sm data-two:grid-cols-2 first:mt-1 first:data-two:mt-0 rounded-md mt-1.5 px-2 py-1 bg-accent/50"
   >
     {#if hideColumn !== "name"}
       <div>{formatFullName(user, { abbreviateMiddle: true })}</div>
