@@ -74,7 +74,7 @@
 
 </script>
 
-<div class="rounded-md border min-w-0 w-full h-max md:max-w-150 ">
+<div class="rounded-md border min-w-0 w-full h-max md:max-w-xl place-self-center">
   <Table.Root noWrapper>
     <Table.Header>
       {#each table.getHeaderGroups() as headerGroup (headerGroup.id)}

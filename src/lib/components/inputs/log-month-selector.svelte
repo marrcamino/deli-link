@@ -4,31 +4,38 @@
   import * as Command from "$lib/components/ui/command/index.js";
   import * as Popover from "$lib/components/ui/popover/index.js";
   import { MONTHS_MAP } from "$lib/constants/months";
-  import { cn, mapToOptions } from "$lib/utils";
+  import { cn, mapToOptions, NativeDateHelper } from "$lib/utils";
   import CheckIcon from "@lucide/svelte/icons/check";
   import ChevronsUpDownIcon from "@lucide/svelte/icons/chevrons-up-down";
   import { tick } from "svelte";
   import type { ClassValue } from "svelte/elements";
-  import { getDTRContext } from "../context.svelte";
 
   interface Props {
+    onselect?: () => void;
     id?: string;
     width?: ClassValue;
     required?: boolean;
     name?: string;
-    value?: any;
+    value: any;
   }
-  let { id, width, ...restProps }: Props = $props();
 
-  const ctx = getDTRContext();
+  let {
+    id,
+    width,
+    value = $bindable(""),
+    onselect,
+    ...restProps
+  }: Props = $props();
+
   const frameworks = mapToOptions(MONTHS_MAP);
 
   let open = $state(false);
 
   let triggerRef = $state<HTMLButtonElement>(null!);
 
+  const CURRENT_MONTH = NativeDateHelper.currentMonth;
   const selectedValue = $derived(
-    frameworks.find((f) => f.value === ctx.selectedMonth)?.label,
+    frameworks.find((f) => f.value === value)?.label,
   );
 
   function closeAndFocusTrigger() {
@@ -44,8 +51,8 @@
   onOpenChangeComplete={(isOpen) => {
     if (isOpen) return;
 
-    if (ctx.selectedMonth === "") {
-      ctx.selectedMonth = ctx.current_month.toString() as any;
+    if (value === "") {
+      value = CURRENT_MONTH.toString() as any;
     }
   }}
 >
@@ -63,13 +70,13 @@
         <ChevronsUpDownIcon class="opacity-50" />
 
         {#if restProps.name}
-          <HiddenInput {...restProps} />
+          <HiddenInput {value} {...restProps} />
         {/if}
       </Button>
     {/snippet}
   </Popover.Trigger>
   <Popover.Content class={cn("w-40 p-0", width)}>
-    <Command.Root bind:value={ctx.selectedMonth} disablePointerSelection>
+    <Command.Root bind:value disablePointerSelection>
       <Command.Input placeholder="Select Month..." />
       <Command.List>
         <Command.Empty>No month found.</Command.Empty>
@@ -77,20 +84,20 @@
           {#each frameworks as framework (framework.value)}
             <Command.Item
               class="hover:bg-accent mb-1"
-              disabled={parseInt(framework.value) > ctx.current_month}
+              disabled={parseInt(framework.value) > CURRENT_MONTH}
               value={framework.value}
               keywords={[framework.label]}
               onSelect={async () => {
-                ctx.selectedMonth = framework.value as any;
+                value = framework.value as any;
                 closeAndFocusTrigger();
-                await ctx.fetchUserLog();
-                ctx.resetAllFilters();
+                // await ctx.fetchUserLog();
+                // ctx.resetAllFilters();
+
+                onselect?.();
               }}
             >
               <CheckIcon
-                class={cn(
-                  ctx.selectedMonth !== framework.value && "text-transparent",
-                )}
+                class={cn(value !== framework.value && "text-transparent")}
               />
               {framework.label}
             </Command.Item>

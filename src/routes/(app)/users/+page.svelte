@@ -12,18 +12,25 @@
   const context = setUserContext();
 
   onMount(async () => {
-    await getCurrentWindow().setTitle("Users");
+    await getCurrentWindow().setTitle("List of Users");
     await context.init();
   });
 </script>
 
 <RouteContent>
   {#snippet header()}
-    <div class="font-semibold">List of Users</div>
-    <Button class="ml-auto" onclick={() => (context.empAddDialogState = true)}>
-      <UserPlus />
-      Add User
-    </Button>
+    <div class=" w-full">
+      <div class="flex items-center w-full place-self-center md:max-w-xl">
+        <div class="font-semibold">List of Users</div>
+        <Button
+          class="ml-auto"
+          onclick={() => (context.empAddDialogState = true)}
+        >
+          <UserPlus />
+          Add User
+        </Button>
+      </div>
+    </div>
   {/snippet}
 
   <div class="p-4">

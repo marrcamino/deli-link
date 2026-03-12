@@ -10,11 +10,11 @@ import Papa from 'papaparse';
 import { getContext, setContext, tick, untrack } from "svelte";
 import { toast } from "svelte-sonner";
 
-
-const CONTEXT_KEY = Symbol("dtr-context");
+const CONTEXT_KEY = Symbol("logs-context");
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 type MonthIndexString = `${MonthIndex}` | ''
 type MachineUserLog = Omit<Log, "log_pk"> & { name: string }
+
 export type UserWithLog = User & Omit<Log, "user_fk">
 
 interface ValidationResult {
@@ -111,12 +111,7 @@ class FileValidator extends ParserAndDecoder {
 
 }
 
-class DTRContext extends FileValidator {
-  // Only used when user DROP and the open tab is "users"
-  private payload: PayLoad | null = null;
-  // Only used when user IMPORT and the open tab is "users"
-  private filePath: string | null = null;
-
+class LogsContext extends FileValidator {
   pageContent: HTMLDivElement | undefined = $state(undefined);
 
   // ACTION VALUES
@@ -124,42 +119,14 @@ class DTRContext extends FileValidator {
   sortNameVal: "none" | "az" | "za" = $state('none')
   groupVal = $state('none')
   selectedUser = $state("all")
-  currentTab: "users" | "logs" | "" = $state('')
 
   missingIdDialogState = $state(false)
-  logPreviewDialog = $state(false);
-  monthSelectDialog = $state(false)
 
-  users: User[] = $state([]);
   missingIds: MachineUserLog[] = $state([])
   rawUserLogs: UserWithLog[] = $state([])
   filteredUserLogs: UserWithLog[] = $state([])
   selectedMonth = $state(NativeDateHelper.currentMonth.toString()) as MonthIndexString;
 
-  constructor() {
-    super()
-
-    $effect(() => {
-      this.monthSelectDialog;
-      untrack(async () => {
-        // THE FOLLOWING CODE WILL RUN IF;
-        // user trigger one of the actions (DROP or IMPORT) where
-        // the tab is 'users'
-        if (this.monthSelectDialog) return
-
-        // When user used DROP feature
-        if (this.payload) {
-          // Note: handler of drop feature when tab is 'log' is in this main page of DTR
-          await this.handleFileDrop(this.payload, true)
-        }
-
-        // When user used IMPORT button
-        if (this.filePath) {
-          this.runAllProcessWithTaost(this.filePath, true)
-        }
-      })
-    });
-  }
 
   private async decodeValidateSetFileContentsSaveToDB(filePath: string): Promise<string> {
 
@@ -250,17 +217,12 @@ class DTRContext extends FileValidator {
     }
   }
 
-  private runAllProcessWithTaost(path: string, switchTabOnFinish = false) {
+  private runAllProcessWithTaost(path: string) {
     toast.promise(
       this.decodeValidateSetFileContentsSaveToDB(path),
       {
         loading: 'Processing...',
         success: (message) => {
-          if (switchTabOnFinish) {
-            this.currentTab = 'logs'
-            setUserPref("dtr_open_tab", 'logs');
-            this.filePath = null
-          }
           this.resetAllFilters()
           return message
         },
@@ -281,10 +243,6 @@ class DTRContext extends FileValidator {
     })
   }
 
-  async loadUsers() {
-    const db = await getDBConn()
-    this.users = await db.select<User[]>("SELECT * FROM user ORDER BY last_name ASC")
-  }
 
   async fetchUserLog() {
     const db = await getDBConn();
@@ -324,21 +282,13 @@ class DTRContext extends FileValidator {
       ],
     });
 
-    if (!filePath) return
-
-    if (this.currentTab === 'users') {
-      this.filePath = filePath
-      this.monthSelectDialog = true
-      return
-    }
-
-    this.runAllProcessWithTaost(filePath)
+    if (filePath) this.runAllProcessWithTaost(filePath)
   }
 
-  async handleFileDrop(dropEvent: PayLoad | string, switchTabOnFinish = false) {
+  async handleFileDrop(dropEvent: PayLoad | string) {
     const path = (typeof dropEvent === 'object') ? dropEvent.paths[0] : dropEvent
 
-    this.runAllProcessWithTaost(path, switchTabOnFinish)
+    this.runAllProcessWithTaost(path)
   }
 
   // #region SORTERS
@@ -406,14 +356,6 @@ class DTRContext extends FileValidator {
     return [...sets]
   }
 
-  openMonthSelector(payloadOrPath: PayLoad | string) {
-    if (typeof payloadOrPath === 'object') {
-      this.payload = payloadOrPath
-    } else this.filePath = payloadOrPath
-
-    this.monthSelectDialog = true
-  }
-
   applyFilters() {
     let newFilteredUserLogs = this.filteredUserLogs
 
@@ -460,10 +402,10 @@ class DTRContext extends FileValidator {
   }
 }
 
-export function setDTRContext() {
-  return setContext(CONTEXT_KEY, new DTRContext)
+export function setLogsContext() {
+  return setContext(CONTEXT_KEY, new LogsContext)
 }
 
-export function getDTRContext() {
-  return getContext(CONTEXT_KEY) as DTRContext
+export function getLogsContext() {
+  return getContext(CONTEXT_KEY) as LogsContext
 }

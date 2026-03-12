@@ -1,37 +1,23 @@
 <script lang="ts" module>
-  import { House, Users, CalendarDays } from "@lucide/svelte/icons";
+  import { page } from "$app/state";
 
-  const data = {
-    user: {
-      name: "shadcn",
-      email: "m@example.com",
-      avatar: "/avatars/shadcn.jpg",
-    },
-    navMain: [
-      {
-        title: "Home",
-        url: "/",
-        icon: House,
-      },
-      {
-        title: "User List",
-        url: "/users",
-        icon: Users,
-      },
-      {
-        title: "Daily Time Record",
-        url: "/dtr",
-        icon: CalendarDays,
-      },
-    ],
+  const isActive = (path: string) => {
+    const currentPath = page.url.pathname;
+
+    // Handle Home separately (exact match)
+    if (path === "/") return currentPath === "/";
+
+    // Check if the current path starts with the link path
+    // AND is followed by a slash or the end of the string
+    return currentPath === path || currentPath.startsWith(`${path}/`);
   };
 </script>
 
 <script lang="ts">
   import * as Sidebar from "$lib/components/ui/sidebar/index.js";
   import type { ComponentProps } from "svelte";
-  import NavMain from "./nav-main.svelte";
   import ThemeSwitcher from "./theme-switcher.svelte";
+  import { ROUTES } from "$lib/routes";
 
   let {
     ref = $bindable(null),
@@ -53,8 +39,30 @@
       </Sidebar.MenuItem>
     </Sidebar.Menu>
   </Sidebar.Header>
-  <Sidebar.Content class="overflow-x-hidden">
-    <NavMain items={data.navMain} />
+  <Sidebar.Content class="overflow-x-hidden gap-0">
+    {#each ROUTES as group}
+      <Sidebar.Group>
+        <Sidebar.GroupLabel class="h-6">{group.name}</Sidebar.GroupLabel>
+        <Sidebar.Menu>
+          {#each group.routes as route (route.title)}
+            <Sidebar.MenuItem>
+              <Sidebar.MenuButton
+                isActive={isActive(route.url)}
+                tooltipContent={route.title}
+                class="data-[active=true]:text-primary text-nowrap"
+              >
+                {#snippet child({ props })}
+                  <a href={route.url} {...props}>
+                    <route.icon />
+                    {route.title}
+                  </a>
+                {/snippet}
+              </Sidebar.MenuButton>
+            </Sidebar.MenuItem>
+          {/each}
+        </Sidebar.Menu>
+      </Sidebar.Group>
+    {/each}
   </Sidebar.Content>
   <Sidebar.Footer>
     <ThemeSwitcher type="sidebar-button" />

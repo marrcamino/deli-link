@@ -71,7 +71,7 @@
           {@render sunIcon()}
           {@render moonIcon()}
         </div>
-        <div class="font-medium capitalize overflow-hidden text-nowrap">
+        <div class="font-medium capitalize overflow-hidden text-nowrap leading-6">
           {mode.current} Theme
         </div>
       </MenuButton>

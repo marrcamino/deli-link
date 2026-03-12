@@ -4,7 +4,7 @@
   import * as Popover from "$lib/components/ui/popover/index.js";
   import * as RadioGroup from "$lib/components/ui/radio-group/index.js";
   import { ChevronDown, RotateCcw, FunnelX } from "@lucide/svelte";
-  import { getDTRContext, type UserWithLog } from "../context.svelte";
+  import { getLogsContext, type UserWithLog } from "./context.svelte";
 
   import * as Command from "$lib/components/ui/command/index.js";
   import CheckIcon from "@lucide/svelte/icons/check";
@@ -12,7 +12,7 @@
 
   import { cn, formatFullName } from "$lib/utils";
 
-  const ctx = getDTRContext();
+  const ctx = getLogsContext();
 
   let groupOpen = $state(false);
   let sortOpen = $state(false);
@@ -56,8 +56,8 @@
   });
 </script>
 
-<div class="w-full pt-3 sticky top-14 bg-background pb-2 z-10">
-  <div class="md:w-140 w-full place-self-center flex gap-1.5 max-md:px-4">
+<div class="w-full pt-3 sticky top-14 bg-background pb-4 z-10">
+  <div class="w-full place-self-center justify-center flex gap-1.5 max-md:px-4 px-1">
     <!-- #region USERS -->
     <Popover.Root bind:open={usersDropdownIsOpen}>
       <Popover.Trigger bind:ref={triggerRef}>
@@ -333,6 +333,7 @@
     <!-- #endregion -->
 
     <Button
+      class="ml-auto"
       variant="secondary-destructive"
       size="sm"
       onclick={async () => {
