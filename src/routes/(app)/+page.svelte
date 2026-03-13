@@ -4,7 +4,7 @@
   import { onMount } from "svelte";
 
   onMount(async () => {
-    await getCurrentWindow().setTitle("Home");
+    await getCurrentWindow().setTitle("Deli Link - Home");
   });
 </script>
 

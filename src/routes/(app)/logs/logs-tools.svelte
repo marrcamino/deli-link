@@ -57,7 +57,7 @@
 </script>
 
 <div class="w-full pt-3 sticky top-14 bg-background pb-4 z-10">
-  <div class="w-full place-self-center justify-center flex gap-1.5 max-md:px-4 px-1">
+  <div class="w-full place-self-center justify-center flex gap-1.5">
     <!-- #region USERS -->
     <Popover.Root bind:open={usersDropdownIsOpen}>
       <Popover.Trigger bind:ref={triggerRef}>

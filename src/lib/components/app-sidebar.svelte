@@ -39,10 +39,12 @@
       </Sidebar.MenuItem>
     </Sidebar.Menu>
   </Sidebar.Header>
-  <Sidebar.Content class="overflow-x-hidden gap-0">
+  <Sidebar.Content class="overflow-x-hidden">
     {#each ROUTES as group}
       <Sidebar.Group>
-        <Sidebar.GroupLabel class="h-6">{group.name}</Sidebar.GroupLabel>
+        {#if group.name}
+          <Sidebar.GroupLabel class="h-6">{group.name}</Sidebar.GroupLabel>
+        {/if}
         <Sidebar.Menu>
           {#each group.routes as route (route.title)}
             <Sidebar.MenuItem>

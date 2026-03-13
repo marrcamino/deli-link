@@ -24,7 +24,7 @@
   let isDragging = $state(false);
 
   onMount(async () => {
-    await getCurrentWindow().setTitle(`LOGS`);
+    await getCurrentWindow().setTitle(`Deli Link - LOGS`);
 
     unlistenDrag = await getCurrentWebview().onDragDropEvent(async (e) => {
       isDragging = e.payload.type === "over";
@@ -41,7 +41,7 @@
   {#snippet header()}
     <div class="w-full">
       <div
-        class="flex items-center w-full place-self-center md:max-w-xl md:-translate-x-2"
+        class="flex items-center w-full place-self-center md:max-w-xl md:-translate-x-2 md:px-2"
       >
         <LogMonthSelector
           bind:value={ctx.selectedMonth}
@@ -58,9 +58,9 @@
     </div>
   {/snippet}
 
-  <div class="rounded-xl pb-4 md:max-w-xl w-full place-self-center">
+  <div class="rounded-xl pb-4 md:max-w-xl w-full place-self-center px-4">
     <LogsTools />
-    <div class="px-4 md:px-1">
+    <div>
       {#if ctx.filteredUserLogs.length}
         {#if ctx.groupVal !== "none"}
           {#if ctx.groupVal === "name"}

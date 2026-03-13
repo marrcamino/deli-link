@@ -1,6 +1,7 @@
 import { setContext, getContext, tick } from "svelte";
 import { fly } from "svelte/transition";
 import { getDBConn } from "$lib/db";
+import { getUsers } from "$lib/helper/db-helper";
 
 const CONTEXT_KEY = Symbol("employee-context");
 
@@ -32,9 +33,7 @@ class EmployeeContext {
 
   /** Initialize table data */
   async init() {
-    const db = await getDBConn();
-    this.users = (await db.select("SELECT * FROM user") as User[])
-
+    this.users = await getUsers()
     await tick()
     this.transitionConfig = { x: -50, duration: 200 }
   }

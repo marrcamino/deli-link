@@ -15,7 +15,7 @@
   onMount(async () => {
     if (data.user) {
       await getCurrentWindow().setTitle(
-        `DTR - ${formatFullName(data.user, { abbreviateMiddle: true }).toUpperCase()}`,
+        `Deli Link - DTR (${formatFullName(data.user, { abbreviateMiddle: true })})`,
       );
     }
   });

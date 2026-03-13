@@ -22,3 +22,11 @@ export async function getUser(user_pk: number) {
 
   return res[0]
 }
+
+export async function getUsers() {
+  const db = await getDBConn();
+  const res = await db.select<User[]>(
+    "SELECT * FROM user ORDER BY last_name ASC",
+  );
+  return res
+}

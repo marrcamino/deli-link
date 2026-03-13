@@ -12,7 +12,7 @@
   const context = setUserContext();
 
   onMount(async () => {
-    await getCurrentWindow().setTitle("List of Users");
+    await getCurrentWindow().setTitle("Deli Link - List of Users");
     await context.init();
   });
 </script>

@@ -4,8 +4,7 @@
   import { Printer } from "@lucide/svelte";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount } from "svelte";
-  import { setDTRContext } from "./context.svelte";
-
+  import { setLeaveContext } from "./context.svelte";
   import {
     createSvelteTable,
     FlexRender,
@@ -19,13 +18,15 @@
     type SortingState,
     type VisibilityState,
   } from "@tanstack/table-core";
+  import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
 
-  const ctx = setDTRContext();
+  const ctx = setLeaveContext();
 
   let sorting = $state<SortingState>([]);
   let columnFilters = $state<ColumnFiltersState>([]);
   let columnVisibility = $state<VisibilityState>({});
+
   const table = createSvelteTable({
     get data() {
       return ctx.users;
@@ -75,27 +76,24 @@
       },
     },
   });
+
   onMount(async () => {
-    ctx.loadUsers();
-    await getCurrentWindow().setTitle(`Deli Link - Daily Time Record`);
+    await getCurrentWindow().setTitle(`Deli Link - Leave Application`);
   });
 </script>
 
-<RouteContent bind:contentRef={ctx.pageContent}>
+<RouteContent>
   {#snippet header()}
     <div class="w-full">
-      <div
-        class="flex items-center w-full place-self-center md:max-w-xl"
-      >
+      <div class="flex items-center w-full place-self-center md:max-w-xl">
         <Button class="ml-auto">
           <Printer />
-          Import Logs
+          Print Empty Form
         </Button>
       </div>
     </div>
   {/snippet}
-
-  <div class="p-4">
+  <div class="px-4 pt-4">
     <div
       class="rounded-md min-w-0 w-full md:max-w-xl h-max border place-self-center"
     >
@@ -137,3 +135,5 @@
     </div>
   </div>
 </RouteContent>
+
+<LeaveSheet />

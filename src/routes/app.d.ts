@@ -23,6 +23,13 @@ declare global {
     time: string;
   }
 
+  interface LeaveApplication {
+    leave_pk: number;
+    user_fk: number;
+    inclusive_from: string;
+    inclusive_to: string;
+  }
+
   interface UserPref<K extends keyof UserPrefKeys = keyof UserPrefKeys> {
     pref_key: K
     pref_value: UserPrefKeys[K]
