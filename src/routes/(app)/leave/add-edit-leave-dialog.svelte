@@ -115,7 +115,9 @@
   <Dialog.Content class="sm:max-w-90">
     <form class="grid gap-4" {onsubmit} autocomplete="off">
       <Dialog.Header>
-        <Dialog.Title>Add New Leave Application</Dialog.Title>
+        <Dialog.Title>
+          {ctx.openLeave ? "Update" : "Add New"} Leave Application
+        </Dialog.Title>
       </Dialog.Header>
       <div class="grid gap-4 my-4">
         <div class="grid gap-1 cursor-not-allowed">
@@ -140,7 +142,7 @@
         >
           Cancel
         </Dialog.Close>
-        <Button type="submit">Add Leave</Button>
+        <Button type="submit">{ctx.openLeave ? "Update" : "Add"} Leave</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

@@ -1,6 +1,6 @@
 import { getDBConn } from "$lib/db";
 import { getUsers } from "$lib/helper/db-helper";
-import { getContext, setContext } from "svelte";
+import { getContext, setContext, untrack } from "svelte";
 
 const CONTEXT_KEY = Symbol("leave-context");
 
@@ -13,19 +13,50 @@ class LeaveContext {
   addEditDialogState = $state(false)
   deleteDialogState = $state(false)
 
+  selectedYear = $state(new Date().getFullYear().toString())
+
   listOfLeave: LeaveApplication[] = $state([])
 
   constructor() {
     getUsers().then(u => this.users = u)
+
+    $effect(() => {
+      this.selectedYear;
+      untrack(async () => {
+        if (this.openUser) await this.loadLeaveApplications(this.openUser.user_pk)
+      })
+    })
   }
 
   private async loadLeaveApplications(id: number) {
-    const db = await getDBConn()
-
-    this.listOfLeave = await db.select<LeaveApplication[]>(`
-      SELECT * from leave_application WHERE user_fk = ? ORDER BY inclusive_to ASC
-      `, [id])
+    this.listOfLeave = await this.getLeaveApplications(id);
   }
+
+  async getLeaveApplications(id: number) {
+    const db = await getDBConn()
+    return await db.select<LeaveApplication[]>(`
+        SELECT *
+        FROM leave_application
+        WHERE user_fk = ?
+          AND strftime('%Y', inclusive_from) = ?
+        ORDER BY inclusive_to ASC
+      `, [id, this.selectedYear.toString()]);
+  }
+
+  countTotalLeaveDays(applications: LeaveApplication[]) {
+    return applications.reduce((total, leave) => {
+      // Append '+08:00' to force Philippines offset if the string is just 'YYYY-MM-DD'
+      const start = new Date(`${leave.inclusive_from}T00:00:00+08:00`);
+      const end = new Date(`${leave.inclusive_to}T00:00:00+08:00`);
+
+      const diffInMs = end.getTime() - start.getTime();
+
+      // Convert ms to days and add 1 for inclusivity
+      const days = Math.round(diffInMs / (1000 * 60 * 60 * 24)) + 1;
+
+      return total + (days > 0 ? days : 0);
+    }, 0);
+  };
 
   add(newLeave: LeaveApplication) {
     this.listOfLeave = [newLeave, ...this.listOfLeave]

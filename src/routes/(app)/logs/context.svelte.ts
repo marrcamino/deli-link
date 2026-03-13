@@ -149,7 +149,7 @@ class LogsContext extends FileValidator {
     if (!result.success) {
       throw new Error(result.message);
     }
-
+    await this.fetchUserLog()
     return result.message;
   }
 
@@ -160,7 +160,6 @@ class LogsContext extends FileValidator {
   private async saveLogs(logs: MachineUserLog[]) {
     if (!logs.length) return { success: false, message: "No logs found." };
 
-    const db = await getDBConn();
     const logMap = new Map<number, MachineUserLog>();
     for (const log of logs) {
       if (!logMap.has(log.user_fk)) logMap.set(log.user_fk, log);
@@ -178,9 +177,11 @@ class LogsContext extends FileValidator {
       return { success: false, message: 'Missing user IDs.' };
     }
 
+    const db = await getDBConn();
+
     // --- 2. WRITE PHASE (Keep this as fast as possible) ---
     try {
-      await db.execute("BEGIN TRANSACTION");
+      await db.execute("BEGIN TRANSACTION"); 
       let oldLogsAreDeleted = false
       // DELETE OLD
       const deleteResult = await db.execute(
@@ -198,13 +199,9 @@ class LogsContext extends FileValidator {
       }
 
       await db.execute('COMMIT');
-      await this.fetchUserLog()
       return {
-
         success: true,
-
         message: `${MONTHS_MAP[parseInt(this.selectedMonth)]} Logs Saved Successfully! ${oldLogsAreDeleted ? 'Old logs are overried' : ''}`,
-
       }
     } catch (e) {
       console.error("Database Error:", e);

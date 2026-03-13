@@ -15,7 +15,7 @@ export const ROUTES = [
         icon: Users,
       },
       {
-        title: "Leave Application",
+        title: "Wellness Leave",
         url: "/leave",
         icon: FileCheck,
       }
