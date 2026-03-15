@@ -9,11 +9,16 @@ import { readFile } from "@tauri-apps/plugin-fs";
 import Papa from 'papaparse';
 import { getContext, setContext, tick, untrack } from "svelte";
 import { toast } from "svelte-sonner";
+import { invoke } from "@tauri-apps/api/core";
 
 const CONTEXT_KEY = Symbol("logs-context");
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
 type MonthIndexString = `${MonthIndex}` | ''
 type MachineUserLog = Omit<Log, "log_pk"> & { name: string }
+interface DbResponse {
+  success: boolean;
+  message: string;
+}
 
 export type UserWithLog = User & Omit<Log, "user_fk">
 
@@ -177,40 +182,18 @@ class LogsContext extends FileValidator {
       return { success: false, message: 'Missing user IDs.' };
     }
 
-    const db = await getDBConn();
-
     // --- 2. WRITE PHASE (Keep this as fast as possible) ---
     try {
-      await db.execute("BEGIN TRANSACTION"); 
-      let oldLogsAreDeleted = false
-      // DELETE OLD
-      const deleteResult = await db.execute(
-        `DELETE FROM log WHERE strftime('%m', date) = ? AND strftime('%Y', date) = ?`,
-        [this.selectedMonthToTwoDigitString(), NativeDateHelper.currentYear]
-      );
-      oldLogsAreDeleted = deleteResult.rowsAffected > 0
+      const response: DbResponse = await invoke("save_logs", {
+        month: this.selectedMonthToTwoDigitString(),
+        year: NativeDateHelper.currentYear,
+        logs: logs
+      });
 
-      // INSERT NEW
-      for (const log of logs) {
-        await db.execute(
-          "INSERT INTO log (user_fk, date, time) VALUES (?, ?, ?)",
-          [log.user_fk, log.date, log.time]
-        );
-      }
-
-      await db.execute('COMMIT');
-      return {
-        success: true,
-        message: `${MONTHS_MAP[parseInt(this.selectedMonth)]} Logs Saved Successfully! ${oldLogsAreDeleted ? 'Old logs are overried' : ''}`,
-      }
+      return response;
     } catch (e) {
-      console.error("Database Error:", e);
-      try {
-        await db.execute('ROLLBACK');
-      } catch (rollbackError) {
-        // Ignore rollback errors if transaction wasn't active
-      }
-      return { success: false, message: "An error occurred while saving." };
+      console.error("IPC Bridge Error:", e);
+      return { success: false, message: "A system error occurred." };
     }
   }
 
