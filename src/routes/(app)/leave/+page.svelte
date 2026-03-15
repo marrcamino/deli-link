@@ -20,6 +20,7 @@
   } from "@tanstack/table-core";
   import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
+  import { openPrintWindow } from "$lib/utils";
 
   const ctx = setLeaveContext();
 
@@ -86,7 +87,7 @@
   {#snippet header()}
     <div class="w-full">
       <div class="flex items-center w-full place-self-center md:max-w-xl">
-        <Button class="ml-auto">
+        <Button class="ml-auto cursor-pointer" onclick={() => openPrintWindow()}>
           <Printer />
           Print Empty Form
         </Button>

@@ -8,20 +8,20 @@
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import { getDBConn } from "$lib/db";
-  import { formatDate, formatFullName } from "$lib/utils";
+  import { formatDate, formatFullName, openPrintWindow } from "$lib/utils";
   import {
     ArrowRight,
     Calendar,
     EllipsisVertical,
-    Pencil,
-    Trash2,
-    Plus,
     FileX,
+    Pencil,
+    Plus,
+    Printer,
+    Trash2,
   } from "@lucide/svelte";
   import { toast } from "svelte-sonner";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
   import { getLeaveContext } from "./context.svelte";
-  import { getUser } from "$lib/helper/db-helper";
 
   const ctx = getLeaveContext();
 
@@ -85,8 +85,9 @@
         </AlertDialog.Header>
         <AlertDialog.Footer>
           <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-          <AlertDialog.Action onclick={deleteLeave}>Continue</AlertDialog.Action
-          >
+          <AlertDialog.Action onclick={deleteLeave}>
+            Continue
+          </AlertDialog.Action>
         </AlertDialog.Footer>
       </AlertDialog.Content>
     </AlertDialog.Root>
@@ -126,36 +127,51 @@
           )}
           <div class="pt-2 first:pt-0">
             <Card.Root class="overflow-hidden relative rounded-lg">
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger
-                  class="absolute top-1.5 p-1 right-1.5 hover:bg-accent rounded-md"
-                >
-                  <EllipsisVertical class="text-muted-foreground size-4" />
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Content align="end">
-                  <DropdownMenu.Group>
-                    <DropdownMenu.Item
-                      onclick={() => {
-                        ctx.openLeave = leave;
-                        ctx.addEditDialogState = true;
-                      }}
-                    >
-                      <Pencil />
-                      Edit
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      variant="destructive"
-                      onclick={() => {
-                        ctx.openLeave = leave;
-                        ctx.deleteDialogState = true;
-                      }}
-                    >
-                      <Trash2 />
-                      Delete
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Group>
-                </DropdownMenu.Content>
-              </DropdownMenu.Root>
+              <div class="absolute top-1.5 right-1.5">
+                <DropdownMenu.Root>
+                  <DropdownMenu.Trigger class="hover:bg-accent rounded-md p-1">
+                    <EllipsisVertical class="text-muted-foreground size-4" />
+                  </DropdownMenu.Trigger>
+                  <DropdownMenu.Content align="end">
+                    <DropdownMenu.Group>
+                      <DropdownMenu.Item
+                        onclick={() => {
+                          openPrintWindow(leave);
+                        }}
+                      >
+                        <Printer />
+                        Print
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Group>
+
+                    <DropdownMenu.Separator />
+
+                    <DropdownMenu.Group>
+                      <DropdownMenu.Item
+                        onclick={() => {
+                          ctx.openLeave = leave;
+                          ctx.addEditDialogState = true;
+                        }}
+                      >
+                        <Pencil />
+                        Edit
+                      </DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        variant="destructive"
+                        onclick={() => {
+                          ctx.openLeave = leave;
+                          ctx.deleteDialogState = true;
+                        }}
+                      >
+                        <Trash2 />
+                        Delete
+                      </DropdownMenu.Item>
+                    </DropdownMenu.Group>
+                  </DropdownMenu.Content>
+                </DropdownMenu.Root>
+
+                <div></div>
+              </div>
 
               <Card.Content class="px-4">
                 <div class="flex items-center justify-between gap-3">

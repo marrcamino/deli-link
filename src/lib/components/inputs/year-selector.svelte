@@ -14,7 +14,7 @@
   let {
     value = $bindable(""),
     placeholder = "Select year",
-    yearsBack = 100, 
+    yearsBack = 100,
     yearsForward = 5,
     ...restProps
   }: Props &
@@ -38,7 +38,7 @@
   );
 </script>
 
-<Select.Root type="single" bind:value>
+<Select.Root type="single" bind:value scrollAlignment="center">
   <Select.Trigger {...restProps}>
     {triggerContent}
   </Select.Trigger>

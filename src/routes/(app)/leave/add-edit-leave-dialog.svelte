@@ -7,14 +7,16 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { formatFullName, IntlDateHelper } from "$lib/utils";
+  import { formatFullName, IntlDateHelper, openPrintWindow } from "$lib/utils";
   import { getLeaveContext } from "./context.svelte";
   import { getDBConn } from "$lib/db";
   import { toast } from "svelte-sonner";
   import { untrack } from "svelte";
+  import { Printer } from "@lucide/svelte";
 
   let startDateValue: DateValue | undefined = $state();
   let endDateValue: DateValue | undefined = $state();
+  let currentLeave: LeaveApplication | null = $state(null);
 
   const ctx = getLeaveContext();
 
@@ -51,13 +53,14 @@
 
     toast.success("Leave succesfully saved");
 
-    ctx.add({
+    const newLeave = {
       leave_pk: newLeaveId,
       user_fk: ctx.openUser?.user_pk!,
       inclusive_from: startDateValue?.toString()!,
       inclusive_to: endDateValue?.toString()!,
-    });
-    ctx.addEditDialogState = false;
+    };
+    currentLeave = newLeave;
+    ctx.add(newLeave);
   }
 
   async function updateLeave() {
@@ -82,7 +85,6 @@
     }
 
     toast.success("Updated successfully");
-    ctx.addEditDialogState = false;
     ctx.update({
       leave_pk: ctx.openLeave?.leave_pk!,
       user_fk: ctx.openUser?.user_pk!,
@@ -98,6 +100,7 @@
       if (!ctx.openLeave) return;
       startDateValue = IntlDateHelper.toDateValue(ctx.openLeave.inclusive_from);
       endDateValue = IntlDateHelper.toDateValue(ctx.openLeave.inclusive_to);
+      currentLeave = ctx.openLeave;
     });
   });
 </script>
@@ -109,6 +112,7 @@
       ctx.openLeave = null;
       startDateValue = undefined;
       endDateValue = undefined;
+      currentLeave = null;
     }
   }}
 >
@@ -136,11 +140,23 @@
         </div>
       </div>
       <Dialog.Footer>
+        <Button
+          type="button"
+          variant="outline"
+          class="mr-auto"
+          disabled={!currentLeave}
+          onclick={() => {
+            if (currentLeave) openPrintWindow(currentLeave);
+          }}
+        >
+          <Printer />
+          Print
+        </Button>
         <Dialog.Close
           type="button"
-          class={buttonVariants({ variant: "outline" })}
+          class={buttonVariants({ variant: "secondary" })}
         >
-          Cancel
+          Close
         </Dialog.Close>
         <Button type="submit">{ctx.openLeave ? "Update" : "Add"} Leave</Button>
       </Dialog.Footer>
