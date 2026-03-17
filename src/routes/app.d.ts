@@ -7,6 +7,8 @@ declare global {
   //   }
   // }
 
+  type Bit = 0 | 1;
+
   interface User {
     user_pk: number;
     last_name: string;
@@ -26,8 +28,10 @@ declare global {
   interface LeaveApplication {
     leave_pk: number;
     user_fk: number;
+    date_file: string;
     inclusive_from: string;
     inclusive_to: string;
+    is_approved: Bit;
   }
 
   interface UserPref<K extends keyof UserPrefKeys = keyof UserPrefKeys> {

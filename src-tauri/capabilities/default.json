@@ -13,6 +13,7 @@
     "sql:allow-execute",
     "sql:allow-load",
     "core:window:allow-create",
+    "core:window:allow-unminimize",
     "core:webview:allow-create-webview",
     "core:webview:allow-create-webview-window",
     "core:window:default",

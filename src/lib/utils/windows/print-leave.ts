@@ -1,5 +1,6 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+
 import { calculateSafeChildPosition } from '.';
 import { formatDate } from "../date-utils";
 
@@ -11,46 +12,54 @@ import { formatDate } from "../date-utils";
 export const openPrintWindow = async (leave?: LeaveApplication) => {
   const width = 900;
   const height = 700;
-
   const parentWindow = getCurrentWindow();
 
+  // 1. Stable Label & Title
+  const childLabel = `print_leave_${leave?.leave_pk ?? "empty"}`;
+  const windowTitle = `Leave Application ${leave ? `(${formatDate(leave.inclusive_from)} to ${formatDate(leave.inclusive_to)})` : "- Empty Form"}`;
 
-  const childLabel = `print_leave_${leave ? leave.leave_pk : "empty"}`;
-  const actualWindowTitle = leave ? `(${formatDate(leave.inclusive_from)} to ${formatDate(leave.inclusive_to)})` : "- Empty Form"
-  const windowTitle = `Leave Application ${actualWindowTitle}`;
+  // 2. Check for existing window
+  const existingWindow = await WebviewWindow.getByLabel(childLabel);
+  if (existingWindow) {
+    await existingWindow.show();
+    await existingWindow.unminimize();
+    await existingWindow.setFocus();
+    return;
+  }
 
+  // 3. Calculate position (Passing parentWindow directly)
+  const { x, y } = await calculateSafeChildPosition(parentWindow, width, height);
 
-  const { x, y } = await calculateSafeChildPosition(width, height);
-
+  // 4. Create the Window
   const webview = new WebviewWindow(childLabel, {
-    url: `/leave/${leave ? leave.leave_pk : 'empty'}`,
+    url: `/leave/${leave?.leave_pk ?? 'empty'}`,
     title: windowTitle,
     resizable: true,
     width,
     height,
     x,
     y,
-    center: false, // Set to false to honor our custom calculated x/y
-    visible: false, // Hidden initially to prevent "flicker" during load
-    parent: parentWindow.label, // Ties the window to the parent in the OS taskbar
+    center: false,
+    visible: false, // Keep hidden until ready
+    parent: parentWindow.label,
   });
 
-  // 6. Lifecycle Management: Close child if parent is closed
-  const unlisten = await parentWindow.onCloseRequested(async () => {
-    const childWindow = await WebviewWindow.getByLabel(childLabel);
-    if (childWindow) {
-      await childWindow.close();
-    }
-    // Cleanup the listener to prevent memory leaks
-    unlisten();
-  });
-
-  // 7. Event Handlers
+  // 5. Register "Show" immediately (No await before this!)
   webview.once("tauri://created", () => {
-    webview.show(); // Reveal window only once Tauri has successfully spawned it
+    webview.show();
+  });
+
+  // 6. Handle Lifecycle (Don't await this in a way that blocks step 5)
+  parentWindow.onCloseRequested(async () => {
+    const childWindow = await WebviewWindow.getByLabel(childLabel);
+    if (childWindow) await childWindow.close();
+  }).then((unlisten) => {
+    // Optional: save unlisten if you need to cleanup later
   });
 
   webview.once("tauri://error", (e) => {
     console.error("Failed to open print window:", e);
   });
 };
+
+

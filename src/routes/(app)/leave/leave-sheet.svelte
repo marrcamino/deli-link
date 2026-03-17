@@ -8,6 +8,7 @@
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import { getDBConn } from "$lib/db";
+  import { calculateTotalDays, countTotalLeaveDays } from "$lib/helper";
   import { formatDate, formatFullName, openPrintWindow } from "$lib/utils";
   import {
     ArrowRight,
@@ -18,12 +19,19 @@
     Plus,
     Printer,
     Trash2,
+    CircleCheck,
+    Undo2,
   } from "@lucide/svelte";
+
   import { toast } from "svelte-sonner";
+  import { expoIn, expoOut } from "svelte/easing";
+  import { scale, slide } from "svelte/transition";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
   import { getLeaveContext } from "./context.svelte";
+  import Badge from "$lib/components/ui/badge/badge.svelte";
 
   const ctx = getLeaveContext();
+  let alterDialogContinueButton: HTMLButtonElement = $state(null!);
 
   async function deleteLeave() {
     const db = await getDBConn();
@@ -44,16 +52,15 @@
     ctx.deleteDialogState = false;
   }
 
-  const calculateTotalDays = (from: string, to: string): number => {
-    const startDate = new Date(from);
-    const endDate = new Date(to);
+  async function updateApproveState(id: number, approve: boolean) {
+    const db = await getDBConn();
+    await db.execute(
+      "UPDATE leave_application SET is_approved = ? WHERE leave_pk = ?",
+      [Number(approve), id],
+    );
 
-    // Calculate difference in milliseconds
-    const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
-
-    // Convert to days and add 1 (to include the start day)
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-  };
+    ctx.update({ leave_pk: id, is_approved: Number(approve) as Bit });
+  }
 </script>
 
 <Sheet.Root
@@ -75,7 +82,13 @@
         if (!isOpen) ctx.openLeave = null;
       }}
     >
-      <AlertDialog.Content class="sm:max-w-sm">
+      <AlertDialog.Content
+        class="sm:max-w-sm"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          alterDialogContinueButton?.focus();
+        }}
+      >
         <AlertDialog.Header>
           <AlertDialog.Title>Delete Leave Application?</AlertDialog.Title>
           <AlertDialog.Description>
@@ -85,7 +98,10 @@
         </AlertDialog.Header>
         <AlertDialog.Footer>
           <AlertDialog.Cancel>Cancel</AlertDialog.Cancel>
-          <AlertDialog.Action onclick={deleteLeave}>
+          <AlertDialog.Action
+            onclick={deleteLeave}
+            bind:ref={alterDialogContinueButton}
+          >
             Continue
           </AlertDialog.Action>
         </AlertDialog.Footer>
@@ -101,7 +117,7 @@
         <div class="flex mt-1">
           <div class=" self-end">
             <div class="leading-4 text-lg font-semibold">
-              {ctx.countTotalLeaveDays(ctx.listOfLeave)} out of 5
+              {countTotalLeaveDays(ctx.listOfLeave)} out of 5
             </div>
             <div class="leading-4 text-sm text-muted-foreground">
               Leave Balance
@@ -119,89 +135,123 @@
           </div>
         </div>
       </Sheet.Header>
-      <div class="mt-2">
+      <div>
         {#each ctx.listOfLeave as leave (leave.leave_pk)}
           {@const totalDays = calculateTotalDays(
             leave.inclusive_from,
             leave.inclusive_to,
           )}
-          <div class="pt-2 first:pt-0">
-            <Card.Root class="overflow-hidden relative rounded-lg">
-              <div class="absolute top-1.5 right-1.5">
-                <DropdownMenu.Root>
-                  <DropdownMenu.Trigger class="hover:bg-accent rounded-md p-1">
-                    <EllipsisVertical class="text-muted-foreground size-4" />
-                  </DropdownMenu.Trigger>
-                  <DropdownMenu.Content align="end">
-                    <DropdownMenu.Group>
-                      <DropdownMenu.Item
-                        onclick={() => {
-                          openPrintWindow(leave);
-                        }}
-                      >
-                        <Printer />
-                        Print
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Group>
-
-                    <DropdownMenu.Separator />
-
-                    <DropdownMenu.Group>
-                      <DropdownMenu.Item
-                        onclick={() => {
-                          ctx.openLeave = leave;
-                          ctx.addEditDialogState = true;
-                        }}
-                      >
-                        <Pencil />
-                        Edit
-                      </DropdownMenu.Item>
-                      <DropdownMenu.Item
-                        variant="destructive"
-                        onclick={() => {
-                          ctx.openLeave = leave;
-                          ctx.deleteDialogState = true;
-                        }}
-                      >
-                        <Trash2 />
-                        Delete
-                      </DropdownMenu.Item>
-                    </DropdownMenu.Group>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Root>
-
-                <div></div>
-              </div>
-
-              <Card.Content class="px-4">
-                <div class="flex items-center justify-between gap-3">
-                  <div class="flex items-center gap-3">
-                    <div class="bg-secondary p-2 text-primary rounded-lg">
-                      <Calendar class="w-4 h-4" />
-                    </div>
-                    <div class="text-sm">
-                      <p class="font-semibold flex items-center gap-2">
-                        {formatDate(leave.inclusive_from)}
-                        <ArrowRight class="text-muted-foreground size-4" />
-                        {formatDate(leave.inclusive_to)}
-                      </p>
-                      <p class="text-xs text-muted-foreground font-light">
-                        Duration Period
-                      </p>
-                    </div>
-                  </div>
-
-                  <div class="text-right pr-2 absolute bottom-1.5 right-0">
-                    <span
-                      class="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+          <div in:slide out:slide={{ delay: 200, duration: 250 }} class="pt-2">
+            <div
+              in:scale={{
+                start: 0.8,
+                opacity: 0.8,
+                delay: 100,
+                easing: expoOut,
+              }}
+              out:scale={{ easing: expoIn }}
+            >
+              <Card.Root class="overflow-hidden relative rounded-lg pb-9">
+                <div class="absolute top-1.5 right-1.5">
+                  <DropdownMenu.Root>
+                    <DropdownMenu.Trigger
+                      class="hover:bg-accent rounded-md p-1"
                     >
-                      {totalDays}
-                      Day{totalDays > 1 ? "s" : ""}
-                    </span>
-                  </div>
+                      <EllipsisVertical class="text-muted-foreground size-4" />
+                    </DropdownMenu.Trigger>
+                    <DropdownMenu.Content align="end">
+                      <DropdownMenu.Group>
+                        <DropdownMenu.Item
+                          onclick={() => {
+                            updateApproveState(
+                              leave.leave_pk,
+                              !leave.is_approved,
+                            );
+                          }}
+                        >
+                          {#if leave.is_approved}
+                            <Undo2 />
+                            <span>Undo Approval</span>
+                          {:else}
+                            <CircleCheck />
+                            <span>Approve</span>
+                          {/if}
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          onclick={() => {
+                            openPrintWindow(leave);
+                          }}
+                        >
+                          <Printer />
+                          Print
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Group>
+
+                      <DropdownMenu.Separator />
+
+                      <DropdownMenu.Group>
+                        <DropdownMenu.Item
+                          onclick={() => {
+                            ctx.openLeave = leave;
+                            ctx.addEditDialogState = true;
+                          }}
+                        >
+                          <Pencil />
+                          Edit
+                        </DropdownMenu.Item>
+                        <DropdownMenu.Item
+                          variant="destructive"
+                          onclick={() => {
+                            ctx.openLeave = leave;
+                            ctx.deleteDialogState = true;
+                          }}
+                        >
+                          <Trash2 />
+                          Delete
+                        </DropdownMenu.Item>
+                      </DropdownMenu.Group>
+                    </DropdownMenu.Content>
+                  </DropdownMenu.Root>
+
+                  <div></div>
                 </div>
-              </Card.Content>
-            </Card.Root>
+
+                <Card.Content class="px-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                      <div class="bg-secondary p-2 text-primary rounded-lg">
+                        <Calendar class="w-4 h-4" />
+                      </div>
+                      <div class="text-sm">
+                        <p class="font-semibold flex items-center gap-2">
+                          {formatDate(leave.inclusive_from)}
+                          <ArrowRight class="text-muted-foreground size-4" />
+                          {formatDate(leave.inclusive_to)}
+                        </p>
+                        <p class="text-xs text-muted-foreground font-light">
+                          Date File: {formatDate(leave.date_file)}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div class="text-right pr-2 absolute bottom-1.5 right-0">
+                      <Badge
+                        class="bg-primary/10 px-2.5 py-0.5 text-xs rounded-md font-medium text-primary"
+                      >
+                        {totalDays}
+                        Day{totalDays > 1 ? "s" : ""}
+                      </Badge>
+                      <Badge
+                        class="rounded-md"
+                        variant={leave.is_approved ? "success" : "secondary"}
+                      >
+                        {leave.is_approved ? "Approved" : "Pending Approval"}
+                      </Badge>
+                    </div>
+                  </div>
+                </Card.Content>
+              </Card.Root>
+            </div>
           </div>
         {:else}
           <Empty.Root class="border">

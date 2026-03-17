@@ -1,7 +1,5 @@
-import { getDBConn } from "$lib/db";
-import { getUsers } from "$lib/helper/db-helper";
+import { getLeaveApplications, getUsers } from "$lib/services";
 import { getContext, setContext, untrack } from "svelte";
-
 const CONTEXT_KEY = Symbol("leave-context");
 
 class LeaveContext {
@@ -33,30 +31,8 @@ class LeaveContext {
   }
 
   async getLeaveApplications(id: number) {
-    const db = await getDBConn()
-    return await db.select<LeaveApplication[]>(`
-        SELECT *
-        FROM leave_application
-        WHERE user_fk = ?
-          AND strftime('%Y', inclusive_from) = ?
-        ORDER BY inclusive_to ASC
-      `, [id, this.selectedYear.toString()]);
+    return await getLeaveApplications(id, this.selectedYear.toString())
   }
-
-  countTotalLeaveDays(applications: LeaveApplication[]) {
-    return applications.reduce((total, leave) => {
-      // Append '+08:00' to force Philippines offset if the string is just 'YYYY-MM-DD'
-      const start = new Date(`${leave.inclusive_from}T00:00:00+08:00`);
-      const end = new Date(`${leave.inclusive_to}T00:00:00+08:00`);
-
-      const diffInMs = end.getTime() - start.getTime();
-
-      // Convert ms to days and add 1 for inclusivity
-      const days = Math.round(diffInMs / (1000 * 60 * 60 * 24)) + 1;
-
-      return total + (days > 0 ? days : 0);
-    }, 0);
-  };
 
   add(newLeave: LeaveApplication) {
     this.listOfLeave = [newLeave, ...this.listOfLeave]
@@ -64,8 +40,13 @@ class LeaveContext {
   remove(id: number) {
     this.listOfLeave = this.listOfLeave.filter(l => l.leave_pk !== id)
   }
-  update(leave: LeaveApplication) {
-    this.listOfLeave = this.listOfLeave.map((l) => l.leave_pk === leave.leave_pk ? leave : l)
+
+  update(leave: Partial<LeaveApplication> & { leave_pk: number }) {
+    this.listOfLeave = this.listOfLeave.map((l) =>
+      l.leave_pk === leave.leave_pk
+        ? { ...l, ...leave } // merge instead of replace
+        : l
+    );
   }
 
   async openSheet(user: User) {
@@ -95,3 +76,4 @@ export function setLeaveContext() {
 export function getLeaveContext() {
   return getContext(CONTEXT_KEY) as LeaveContext
 }
+

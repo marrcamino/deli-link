@@ -1,7 +1,7 @@
 import { setContext, getContext, tick } from "svelte";
 import { fly } from "svelte/transition";
 import { getDBConn } from "$lib/db";
-import { getUsers } from "$lib/helper/db-helper";
+import { getUsers } from "$lib/services";
 
 const CONTEXT_KEY = Symbol("employee-context");
 

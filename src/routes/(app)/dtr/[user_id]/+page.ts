@@ -1,4 +1,4 @@
-import { isUserIsExistInDatabase, getUser } from '$lib/helper/db-helper';
+import { getUser } from '$lib/services';
 import type { PageLoad } from './$types';
 
 export const load: PageLoad = async ({ params }) => {

@@ -7,13 +7,20 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { formatFullName, IntlDateHelper, openPrintWindow } from "$lib/utils";
+  import {
+    formatDate,
+    formatFullName,
+    IntlDateHelper,
+    NativeDateHelper,
+    openPrintWindow,
+  } from "$lib/utils";
   import { getLeaveContext } from "./context.svelte";
   import { getDBConn } from "$lib/db";
   import { toast } from "svelte-sonner";
   import { untrack } from "svelte";
   import { Printer } from "@lucide/svelte";
 
+  let dateFile = $state(NativeDateHelper.isoToday);
   let startDateValue: DateValue | undefined = $state();
   let endDateValue: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
@@ -33,11 +40,12 @@
 
     const res = await db.execute(
       `
-      INSERT INTO leave_application (user_fk, inclusive_from, inclusive_to)
-      VALUES (?, ?, ?)
+      INSERT INTO leave_application (user_fk, date_file, inclusive_from, inclusive_to)
+      VALUES (?, ?, ?, ?)
     `,
       [
         ctx.openUser?.user_pk,
+        dateFile,
         startDateValue?.toString(),
         endDateValue?.toString(),
       ],
@@ -55,9 +63,11 @@
 
     const newLeave = {
       leave_pk: newLeaveId,
+      date_file: dateFile,
       user_fk: ctx.openUser?.user_pk!,
       inclusive_from: startDateValue?.toString()!,
       inclusive_to: endDateValue?.toString()!,
+      is_approved: 0 as Bit,
     };
     currentLeave = newLeave;
     ctx.add(newLeave);
@@ -87,6 +97,7 @@
     toast.success("Updated successfully");
     ctx.update({
       leave_pk: ctx.openLeave?.leave_pk!,
+      date_file: dateFile,
       user_fk: ctx.openUser?.user_pk!,
       inclusive_from: startDateValue?.toString()!,
       inclusive_to: endDateValue?.toString()!,
@@ -97,10 +108,12 @@
     ctx.openLeave;
 
     untrack(() => {
-      if (!ctx.openLeave) return;
-      startDateValue = IntlDateHelper.toDateValue(ctx.openLeave.inclusive_from);
-      endDateValue = IntlDateHelper.toDateValue(ctx.openLeave.inclusive_to);
-      currentLeave = ctx.openLeave;
+      if (!ctx.openLeave || !ctx.addEditDialogState) return;
+      const leave = ctx.openLeave;
+      dateFile = leave.date_file;
+      startDateValue = IntlDateHelper.toDateValue(leave.inclusive_from);
+      endDateValue = IntlDateHelper.toDateValue(leave.inclusive_to);
+      currentLeave = leave;
     });
   });
 </script>
@@ -123,7 +136,11 @@
           {ctx.openLeave ? "Update" : "Add New"} Leave Application
         </Dialog.Title>
       </Dialog.Header>
-      <div class="grid gap-4 my-4">
+      <div class="grid gap-5 my-4">
+        <div class="grid gap-1 cursor-not-allowed">
+          <Label for="date_file">Date File</Label>
+          <Input id="date_file" readonly value={formatDate(dateFile, "long")} />
+        </div>
         <div class="grid gap-1 cursor-not-allowed">
           <Label for="userName">User Name</Label>
           <Input

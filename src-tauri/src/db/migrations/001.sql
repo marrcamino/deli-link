@@ -18,10 +18,12 @@ CREATE TABLE IF NOT EXISTS user_pref (
   pref_key TEXT PRIMARY KEY UNIQUE NOT NULL,
   pref_value TEXT
 );
-CREATE TABLE leave_application (
+CREATE TABLE IF NOT EXISTS leave_application (
   leave_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   user_fk INTEGER NOT NULL,
+  date_file TEXT NOT NULL,
   inclusive_from TEXT NOT NULL,
   inclusive_to TEXT NOT NULL,
+  is_approved INTEGER NOT NULL,
   FOREIGN KEY (user_fk) REFERENCES user (user_pk) ON DELETE CASCADE
 );

@@ -1,7 +1,7 @@
 <script lang="ts">
+  import { countTotalLeaveDays } from "$lib/helper";
   import { onMount, untrack } from "svelte";
   import { getLeaveContext } from "./context.svelte";
-
   interface Props {
     user: User;
   }
@@ -27,7 +27,7 @@
 
 <div class="flex items-end">
   {#if leaveApplications}
-    <span class="text-lg">{ctx.countTotalLeaveDays(leaveApplications)}</span>
+    <span class="text-lg">{countTotalLeaveDays(leaveApplications)}</span>
     <span class="text-muted-foreground">/</span>
     <span class="text-muted-foreground">5</span>
   {/if}

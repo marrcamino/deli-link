@@ -1,7 +1,7 @@
 import { MONTHS_MAP } from "$lib/constants/months";
 import { getDBConn } from "$lib/db";
 import { setUserPref } from "$lib/helper";
-import { isUserIsExistInDatabase } from "$lib/helper/db-helper";
+import { isUserIsExistInDatabase } from "$lib/services";
 import { NativeDateHelper } from "$lib/utils/date-utils";
 import type { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { open } from "@tauri-apps/plugin-dialog";

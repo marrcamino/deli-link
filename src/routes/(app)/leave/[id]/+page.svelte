@@ -4,9 +4,13 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { getUserPref, setUserPref } from "$lib/helper";
+  import { calculateTotalDays, getUserPref, setUserPref } from "$lib/helper";
+  import { formatDate, formatFullName, NativeDateHelper } from "$lib/utils";
   import { Pencil, Printer } from "@lucide/svelte";
-  import { onMount, untrack } from "svelte";
+  import { tick, untrack } from "svelte";
+  import type { PageData } from "./$types";
+
+  let { data }: { data: PageData } = $props();
 
   let dialogOpen = $state(false);
   let notEmptyForm = $derived(page.params.id === "empty" ? "" : null);
@@ -15,6 +19,8 @@
 
   let bindSigAoValue = $state("");
   let bindSigHeadValue = $state("");
+
+  let waitingAfterSignatories = false;
 
   async function onsubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -36,18 +42,14 @@
     });
   });
 
-  onMount(async () => {
-    sigAoValue = (await getUserPref("leave_ao_signatory")) ?? "";
-    sigHeadValue = (await getUserPref("leave_head_signatory")) ?? "";
-  });
-
   function printLeave() {
     if (page.params.id === "empty") {
       window.print();
+
       return;
     }
-
     if (!sigAoValue.trim() || !sigHeadValue.trim()) {
+      waitingAfterSignatories = true;
       dialogOpen = true;
     } else window.print();
   }
@@ -60,19 +62,39 @@
       }
     }
   }
+
+  async function getSignatories() {
+    const aoSig = await getUserPref("leave_ao_signatory");
+    const headSig = await getUserPref("leave_head_signatory");
+
+    sigAoValue = aoSig ?? "";
+    sigHeadValue = headSig ?? "";
+
+    await tick();
+    printLeave();
+  }
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
 <div class=" w-full sticky top-0 print:hidden bg-background border-b">
-  <div class="w-a4 place-self-center py-2 flex gap-2">
-    <Dialog.Root bind:open={dialogOpen}>
+  <div class="w-a4 place-self-center py-2 flex gap-2 justify-end">
+    <Dialog.Root
+      bind:open={dialogOpen}
+      onOpenChangeComplete={(isOpen) => {
+        if (!isOpen && waitingAfterSignatories) {
+          printLeave();
+          waitingAfterSignatories = false;
+        }
+      }}
+    >
       <Dialog.Trigger
         type="button"
+        data-empty={notEmptyForm}
         class={buttonVariants({
           variant: "secondary",
           size: "sm",
-          class: "ml-auto",
+          class: "data-empty:hidden",
         })}
       >
         Edit Signatories
@@ -125,14 +147,13 @@
 </div>
 
 <div
-  class="size-a4 border bg-white text-black! place-self-center shadow-2xl print:shadow-none print:m-0 my-8 p-15 font-sans!"
+  data-empty={notEmptyForm}
+  class="group size-a4 border bg-white text-black! place-self-center shadow-2xl print:shadow-none print:m-0 my-8 p-15 font-sans!"
 >
   <div class="flex items-center justify-between mb-2">
     <p class="text-xs font-bold border border-black px-2 py-1">
-      PHRMDO Form No. <span
-        class="underline
-      ">04</span
-      >
+      PHRMDO Form No.
+      <span class="underline">04</span>
     </p>
     <span class="text-[12px] font-semibold">Annex A</span>
   </div>
@@ -143,7 +164,7 @@
         src="/provincial-logo.png"
         alt="Provincial Logo"
         class="h-20 w-20 mb-2"
-        onload={printLeave}
+        onload={getSignatories}
       />
       <div class="text-[10px] uppercase leading-tight">
         Republic of the Philippines<br />
@@ -164,17 +185,23 @@
   <div class="border-2 border-black">
     <div class="border-b-2 border-black p-1">
       <p class="block text-[13px] font-bold uppercase">Name:</p>
-      <div class="h-8"></div>
+      <div class="h-4 leading-3.5 text-sm">
+        {data.userLeave && formatFullName(data.userLeave)}
+      </div>
     </div>
 
     <div class="grid grid-cols-2 border-b-2 border-black">
       <div class="border-r-2 border-black p-1">
         <p class="block text-[13px] font-bold uppercase">Office:</p>
-        <div class="h-8"></div>
+        <div class="min-h-7 leading-3.5 text-sm group-data-empty:hidden">
+          Provincial Human Resource Management and Development Office
+        </div>
       </div>
       <div class="p-1">
         <p class="block text-[13px] font-bold uppercase">Position:</p>
-        <div class="h-8"></div>
+        <div class="min-h-7 leading-3.5 text-sm">
+          {data.userLeave && data.userLeave.designation}
+        </div>
       </div>
     </div>
 
@@ -182,23 +209,49 @@
       <div class="border-r-2 border-black">
         <div class="p-1">
           <p class="block text-[13px] font-bold uppercase">Date of Filing:</p>
-          <div class="h-6 border-b border-black"></div>
+          <div
+            class="flex h-6 border-b border-black items-end justify-center text-sm"
+          >
+            {data.userLeave && formatDate(data.userLeave.date_file)}
+          </div>
         </div>
         <div class="p-1">
           <p class="block text-[13px] font-bold uppercase">
             Number of Working Days Applied For:
           </p>
-          <div class="h-8 border-b border-black"></div>
+          <div
+            class="h-8 flex border-b border-black items-end justify-center text-sm"
+          >
+            {#if data.userLeave}
+              {@const counts = calculateTotalDays(
+                data.userLeave.inclusive_from,
+                data.userLeave.inclusive_to,
+              )}
+              {counts} Day{counts > 1 ? "s" : ""}
+            {/if}
+          </div>
         </div>
         <div class="p-1 pb-2">
           <p class="block text-[13px] font-bold uppercase">Inclusive Dates:</p>
-          <div class="h-8 border-b border-black"></div>
+          <div
+            class="h-8 flex border-b gap-1 border-black items-end justify-center text-sm"
+          >
+            {#if data.userLeave}
+              {formatDate(data.userLeave.inclusive_from)}
+              <span>-</span>
+              {formatDate(data.userLeave.inclusive_to)}
+            {/if}
+          </div>
         </div>
       </div>
       <div class="flex flex-col justify-end items-center p-2">
+        <span class="text-sm">
+          {data.userLeave &&
+            formatFullName(data.userLeave, { order: "normal" })}</span
+        >
         <div class="w-full border-t border-black mb-1"></div>
-        <span class="text-[11px] uppercase font-semibold"
-          >Signature of Applicant</span
+        <span class="text-[11px] uppercase font-bold">
+          Signature of Applicant</span
         >
       </div>
     </div>
@@ -210,7 +263,12 @@
             Certification/Recommendation:
           </h2>
           <p class="text-[10px] mb-2 font-semibold">
-            As of <span class="inline-block border-b border-black w-45"></span>
+            As of <span class="group-data-empty:hidden"
+              >{formatDate(NativeDateHelper.today(), "long")}</span
+            >
+            <span
+              class="hidden border-b border-black w-45 group-data-empty:inline-block"
+            ></span>
           </p>
 
           <table
@@ -226,12 +284,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td class="border-r border-black p-0.5 font-semibold text-sm"
-                  >5</td
-                >
-                <td class="border-r border-black p-0.5"></td>
-                <td class="p-0.5"></td>
+              <tr class="h-6.5 font-semibold text-sm">
+                <td class="border-r border-black">
+                  <span class="group-data-empty:hidden">5</span>
+                </td>
+                <td class="border-r border-black p-0.5">
+                  {data.leaveLeft ? data.leaveLeft : ""}
+                </td>
+                <td class="p-0.5">
+                  {data.leaveLeft ? 5 - data.leaveLeft : ""}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -253,14 +315,11 @@
         </div>
 
         <div class="text-center mt-20 mb-1">
-          <p
-            class="font-bold text-[13px] uppercase data-empty:opacity-0"
-            data-empty={notEmptyForm}
-          >
+          <p class="font-bold text-[13px] uppercase group-data-empty:opacity-0">
             {#if sigAoValue}
               {sigAoValue}
             {:else}
-              <span class="opacity-50">No Singatory Name</span>
+              <span class="opacity-50 print:opacity-0">No Singatory Name</span>
             {/if}
           </p>
           <p
@@ -275,14 +334,11 @@
         <h2 class="text-[13px] font-bold uppercase">Approved:</h2>
 
         <div class="text-center mb-1">
-          <p
-            class="font-bold text-[13px] uppercase data-empty:opacity-0"
-            data-empty={notEmptyForm}
-          >
+          <p class="font-bold text-[13px] uppercase group-data-empty:opacity-0">
             {#if sigHeadValue}
               {sigHeadValue}
             {:else}
-              <span class="opacity-50">No Singatory Name</span>
+              <span class="opacity-50 print:opacity-0">No Singatory Name</span>
             {/if}
           </p>
           <p
