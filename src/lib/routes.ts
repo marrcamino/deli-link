@@ -14,6 +14,12 @@ export const ROUTES = [
         url: "/users",
         icon: Users,
       },
+    ]
+  },
+
+  {
+    name: "Application",
+    routes: [
       {
         title: "Wellness Leave",
         url: "/leave",

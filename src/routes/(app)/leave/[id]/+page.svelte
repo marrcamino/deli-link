@@ -289,10 +289,10 @@
                   <span class="group-data-empty:hidden">5</span>
                 </td>
                 <td class="border-r border-black p-0.5">
-                  {data.leaveLeft ? data.leaveLeft : ""}
+                  {data.leaveLeft !== null ? data.leaveLeft : ""}
                 </td>
                 <td class="p-0.5">
-                  {data.leaveLeft ? 5 - data.leaveLeft : ""}
+                  {data.leaveLeft !== null ? 5 - data.leaveLeft : ""}
                 </td>
               </tr>
             </tbody>

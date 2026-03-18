@@ -39,7 +39,7 @@
       </Sidebar.MenuItem>
     </Sidebar.Menu>
   </Sidebar.Header>
-  <Sidebar.Content class="overflow-x-hidden">
+  <Sidebar.Content class="overflow-x-hidden gap-0">
     {#each ROUTES as group}
       <Sidebar.Group>
         {#if group.name}

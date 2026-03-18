@@ -11,6 +11,9 @@
     // Values
     startDateValue?: DateValue;
     endDateValue?: DateValue;
+    // Placeholders
+    startDatePlaceholder?: DateValue;
+    endDatePlaceholder?: DateValue;
     // Min Value
     startMaxDate?: DateValue;
     endMaxDate?: DateValue;
@@ -42,6 +45,9 @@
     // Values
     startDateValue = $bindable(),
     endDateValue = $bindable(),
+    // Placeholders
+    startDatePlaceholder = $bindable(),
+    endDatePlaceholder = $bindable(),
     // Min Value
     startMaxDate = $bindable(),
     endMaxDate = $bindable(),
@@ -63,8 +69,6 @@
   }: Props = $props();
 
   let endDateOpenState = $state(false);
-  // let endMinDate: CalendarDate | undefined = $derived(undefined);
-  let endDatePlaceholder: DateValue | undefined = $state();
 
   /** This will set/reset end date's value and placeholder*/
   function setEndDateValues(): CalendarDate | undefined {
@@ -101,6 +105,7 @@
         bind:value={startDateValue}
         bind:maxDate={startMaxDate}
         bind:minDate={startMinDate}
+        bind:placeholder={startDatePlaceholder}
         ariaInvalid={startDateInvalid}
         onValueChange={() => {
           if (startDateValue) {

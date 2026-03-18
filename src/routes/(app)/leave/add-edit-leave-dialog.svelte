@@ -2,28 +2,30 @@
   import Asterisk from "$lib/components/display/asterisk.svelte";
   import DatePicker from "$lib/components/inputs/date/date-picker.svelte";
   import DateRangePicker from "$lib/components/inputs/date/date-range-picker.svelte";
-  import { CalendarDate, type DateValue } from "@internationalized/date";
   import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
+  import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import { getDBConn } from "$lib/db";
   import {
-    formatDate,
     formatFullName,
     IntlDateHelper,
-    NativeDateHelper,
-    openPrintWindow,
+    openPrintWindow
   } from "$lib/utils";
-  import { getLeaveContext } from "./context.svelte";
-  import { getDBConn } from "$lib/db";
-  import { toast } from "svelte-sonner";
-  import { untrack } from "svelte";
+  import { type DateValue } from "@internationalized/date";
   import { Printer } from "@lucide/svelte";
+  import { untrack } from "svelte";
+  import { toast } from "svelte-sonner";
+  import { getLeaveContext } from "./context.svelte";
 
-  let dateFile = $state(NativeDateHelper.isoToday);
+  // let dateFile = $state(NativeDateHelper.isoToday);
+  let dateFile: DateValue | undefined = $state(IntlDateHelper.today);
+  let startDatePlaceholder: DateValue | undefined = $state();
   let startDateValue: DateValue | undefined = $state();
   let endDateValue: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
+  let isApprove = $state(false);
 
   const ctx = getLeaveContext();
 
@@ -40,14 +42,15 @@
 
     const res = await db.execute(
       `
-      INSERT INTO leave_application (user_fk, date_file, inclusive_from, inclusive_to)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO leave_application (user_fk, date_file, inclusive_from, inclusive_to, is_approved)
+      VALUES (?, ?, ?, ?, ?)
     `,
       [
         ctx.openUser?.user_pk,
-        dateFile,
+        dateFile?.toString(),
         startDateValue?.toString(),
         endDateValue?.toString(),
+        Number(isApprove),
       ],
     );
     let newLeaveId: number | null = null;
@@ -63,11 +66,11 @@
 
     const newLeave = {
       leave_pk: newLeaveId,
-      date_file: dateFile,
+      date_file: dateFile!.toString(),
       user_fk: ctx.openUser?.user_pk!,
       inclusive_from: startDateValue?.toString()!,
       inclusive_to: endDateValue?.toString()!,
-      is_approved: 0 as Bit,
+      is_approved: Number(isApprove) as Bit,
     };
     currentLeave = newLeave;
     ctx.add(newLeave);
@@ -79,12 +82,16 @@
     const res = await db.execute(
       `
       UPDATE leave_application 
-      SET inclusive_from = ?, inclusive_to = ?
+      SET 
+        inclusive_from = ?, 
+        inclusive_to = ?,
+        is_approved = ?
       WHERE leave_pk = ?
     `,
       [
         startDateValue?.toString()!,
         endDateValue?.toString()!,
+        Number(isApprove),
         ctx.openLeave?.leave_pk!,
       ],
     );
@@ -97,10 +104,11 @@
     toast.success("Updated successfully");
     ctx.update({
       leave_pk: ctx.openLeave?.leave_pk!,
-      date_file: dateFile,
+      date_file: dateFile!.toString(),
       user_fk: ctx.openUser?.user_pk!,
       inclusive_from: startDateValue?.toString()!,
       inclusive_to: endDateValue?.toString()!,
+      is_approved: Number(isApprove) as Bit,
     });
   }
 
@@ -110,10 +118,11 @@
     untrack(() => {
       if (!ctx.openLeave || !ctx.addEditDialogState) return;
       const leave = ctx.openLeave;
-      dateFile = leave.date_file;
+      dateFile = IntlDateHelper.toDateValue(leave.date_file);
       startDateValue = IntlDateHelper.toDateValue(leave.inclusive_from);
       endDateValue = IntlDateHelper.toDateValue(leave.inclusive_to);
       currentLeave = leave;
+      isApprove = Boolean(leave.is_approved);
     });
   });
 </script>
@@ -123,9 +132,11 @@
   onOpenChangeComplete={(isOpen) => {
     if (!isOpen) {
       ctx.openLeave = null;
+      dateFile = IntlDateHelper.today;
       startDateValue = undefined;
       endDateValue = undefined;
       currentLeave = null;
+      isApprove = false;
     }
   }}
 >
@@ -135,14 +146,13 @@
         <Dialog.Title>
           {ctx.openLeave ? "Update" : "Add New"} Leave Application
         </Dialog.Title>
+        <Dialog.Description>
+          Fields marked with asterisk <Asterisk withParentheses /> are required.
+        </Dialog.Description>
       </Dialog.Header>
-      <div class="grid gap-5 my-4">
+      <div class="grid gap-5 mb-4 mt-2">
         <div class="grid gap-1 cursor-not-allowed">
-          <Label for="date_file">Date File</Label>
-          <Input id="date_file" readonly value={formatDate(dateFile, "long")} />
-        </div>
-        <div class="grid gap-1 cursor-not-allowed">
-          <Label for="userName">User Name</Label>
+          <Label for="userName">Employee Name</Label>
           <Input
             id="userName"
             readonly
@@ -152,8 +162,33 @@
           />
         </div>
 
-        <div class="">
-          <DateRangePicker allRequired bind:startDateValue bind:endDateValue />
+        <div class="grid gap-1 cursor-not-allowed">
+          <Label for="date_file" class="grid gap-1">
+            <div>Date File <Asterisk /></div>
+            <DatePicker
+              bind:value={dateFile}
+              required
+              name="date_file"
+              closeOnDateSelect
+              onValueChange={(value) => {
+                if (!startDateValue) startDatePlaceholder = value;
+              }}
+            />
+          </Label>
+        </div>
+
+        <div>
+          <DateRangePicker
+            allRequired
+            bind:startDateValue
+            bind:endDateValue
+            {startDatePlaceholder}
+          />
+        </div>
+
+        <div class="flex items-center gap-2 w-full">
+          <Checkbox id="isApprove" bind:checked={isApprove} />
+          <Label for="isApprove">Set as approved</Label>
         </div>
       </div>
       <Dialog.Footer>

@@ -11,17 +11,21 @@
 
   let leaveApplications: LeaveApplication[] = $state([]);
 
+  async function setLeaveApplications() {
+    leaveApplications = await ctx.getLeaveApplications(user.user_pk, 'approve_only');
+  }
+
   // When the sheet is close
   $effect(() => {
     ctx.sheetState;
     untrack(async () => {
       if (ctx.sheetState || ctx.openUser?.user_pk !== user.user_pk) return;
-      leaveApplications = await ctx.getLeaveApplications(user.user_pk);
+      await setLeaveApplications();
     });
   });
 
   onMount(async () => {
-    leaveApplications = await ctx.getLeaveApplications(user.user_pk);
+    await setLeaveApplications();
   });
 </script>
 

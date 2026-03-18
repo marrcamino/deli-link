@@ -22,14 +22,17 @@
     CircleCheck,
     Undo2,
   } from "@lucide/svelte";
-
   import { toast } from "svelte-sonner";
   import { expoIn, expoOut } from "svelte/easing";
-  import { scale, slide } from "svelte/transition";
+  import { fade, fly, scale, slide } from "svelte/transition";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
   import { getLeaveContext } from "./context.svelte";
   import Badge from "$lib/components/ui/badge/badge.svelte";
+  import { untrack } from "svelte";
+  import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
 
+  let openComplete = $state(false);
+  let defaultInTransDuration = $derived(openComplete ? 300 : 0);
   const ctx = getLeaveContext();
   let alterDialogContinueButton: HTMLButtonElement = $state(null!);
 
@@ -61,6 +64,19 @@
 
     ctx.update({ leave_pk: id, is_approved: Number(approve) as Bit });
   }
+
+  $effect(() => {
+    ctx.sheetState;
+    untrack(() => {
+      if (!ctx.sheetState) {
+        openComplete = false;
+        return;
+      }
+      setTimeout(() => {
+        openComplete = true;
+      }, 300);
+    });
+  });
 </script>
 
 <Sheet.Root
@@ -116,11 +132,11 @@
         </div>
         <div class="flex mt-1">
           <div class=" self-end">
-            <div class="leading-4 text-lg font-semibold">
-              {countTotalLeaveDays(ctx.listOfLeave)} out of 5
-            </div>
             <div class="leading-4 text-sm text-muted-foreground">
               Leave Balance
+            </div>
+            <div class="leading-4 text-lg font-semibold">
+              {countTotalLeaveDays(ctx.listOfLeave)} out of 5
             </div>
           </div>
           <div class="ml-auto flex gap-2">
@@ -141,13 +157,18 @@
             leave.inclusive_from,
             leave.inclusive_to,
           )}
-          <div in:slide out:slide={{ delay: 200, duration: 250 }} class="pt-2">
+          <div
+            in:slide={{ duration: defaultInTransDuration }}
+            out:slide={{ delay: 200, duration: 250 }}
+            class="pb-2"
+          >
             <div
               in:scale={{
                 start: 0.8,
                 opacity: 0.8,
                 delay: 100,
                 easing: expoOut,
+                duration: defaultInTransDuration,
               }}
               out:scale={{ easing: expoIn }}
             >
@@ -241,12 +262,7 @@
                         {totalDays}
                         Day{totalDays > 1 ? "s" : ""}
                       </Badge>
-                      <Badge
-                        class="rounded-md"
-                        variant={leave.is_approved ? "success" : "secondary"}
-                      >
-                        {leave.is_approved ? "Approved" : "Pending Approval"}
-                      </Badge>
+                      <ApproveBadgeIndicator is_approved={leave.is_approved} />
                     </div>
                   </div>
                 </Card.Content>
@@ -254,27 +270,34 @@
             </div>
           </div>
         {:else}
-          <Empty.Root class="border">
-            <Empty.Header>
-              <Empty.Media variant="icon">
-                <FileX />
-              </Empty.Media>
-              <Empty.Title>No Leave Applications</Empty.Title>
-              <Empty.Description>
-                No leave records found for the year {ctx.selectedYear}.
-              </Empty.Description>
-            </Empty.Header>
-            <Empty.Content>
-              <Button
-                variant="outline"
-                size="sm"
-                onclick={() => (ctx.addEditDialogState = true)}
-              >
-                <Plus />
-                Add New Leave
-              </Button>
-            </Empty.Content>
-          </Empty.Root>
+          <div class="overflow-hidden pb-4">
+            <div
+              in:fly={{ delay: 400, y: 10, opacity: 0 }}
+              out:fly={{ duration: defaultInTransDuration === 0 ? 0 : 400, y: -20 }}
+            >
+              <Empty.Root class="border">
+                <Empty.Header>
+                  <Empty.Media variant="icon">
+                    <FileX />
+                  </Empty.Media>
+                  <Empty.Title>No Leave Applications</Empty.Title>
+                  <Empty.Description>
+                    No leave records found for the year {ctx.selectedYear}.
+                  </Empty.Description>
+                </Empty.Header>
+                <Empty.Content>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onclick={() => (ctx.addEditDialogState = true)}
+                  >
+                    <Plus />
+                    Add New Leave
+                  </Button>
+                </Empty.Content>
+              </Empty.Root>
+            </div>
+          </div>
         {/each}
       </div>
     </ScrollArea>

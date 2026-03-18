@@ -135,7 +135,7 @@
         variant: "outline",
         class: [
           "justify-start w-full min-w-10 text-left font-normal relative ",
-          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive aria-invalid:ring-[3px] hover:group-data-present/date:text-transparent group-data-present/date:text-transparent",
+          "aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive aria-invalid:ring-[3px] hover:group-data-present/date:text-transparent group-data-present/date:text-transparent pl-2.5!",
           triggerOptions?.class ?? null,
         ],
       }),
