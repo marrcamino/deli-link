@@ -5,7 +5,12 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
   import { calculateTotalDays, getUserPref, setUserPref } from "$lib/helper";
-  import { formatDate, formatFullName, NativeDateHelper } from "$lib/utils";
+  import {
+    formatDate,
+    formatFullName,
+    formatPHTime,
+    NativeDateHelper,
+  } from "$lib/utils";
   import { Pencil, Printer } from "@lucide/svelte";
   import { tick, untrack } from "svelte";
   import type { PageData } from "./$types";
@@ -21,6 +26,7 @@
   let bindSigHeadValue = $state("");
 
   let waitingAfterSignatories = false;
+  let todayDateFormatted = formatDate(NativeDateHelper.today(), "long");
 
   async function onsubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -33,25 +39,15 @@
     dialogOpen = false;
   }
 
-  $effect(() => {
-    dialogOpen;
-    untrack(() => {
-      if (!dialogOpen) return;
-      bindSigAoValue = sigAoValue;
-      bindSigHeadValue = sigHeadValue;
-    });
-  });
-
   function printLeave() {
-    if (page.params.id === "empty") {
-      window.print();
-
-      return;
-    }
-    if (!sigAoValue.trim() || !sigHeadValue.trim()) {
-      waitingAfterSignatories = true;
-      dialogOpen = true;
-    } else window.print();
+    // if (page.params.id === "empty") {
+    //   window.print();
+    //   return;
+    // }
+    // if (!sigAoValue.trim() || !sigHeadValue.trim()) {
+    //   waitingAfterSignatories = true;
+    //   dialogOpen = true;
+    // } else window.print();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -73,11 +69,25 @@
     await tick();
     printLeave();
   }
+
+  function getControlNumber(userLeave: LeaveApplication & User) {
+    const [date, time] = userLeave.created_at.split(" ");
+    return `LA${userLeave.leave_pk}-${date.replaceAll("-", "")}-${time.replaceAll(":", "")}`;
+  }
+
+  $effect(() => {
+    dialogOpen;
+    untrack(() => {
+      if (!dialogOpen) return;
+      bindSigAoValue = sigAoValue;
+      bindSigHeadValue = sigHeadValue;
+    });
+  });
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class=" w-full sticky top-0 print:hidden bg-background border-b">
+<div class="w-full sticky top-0 print:hidden bg-background border-b">
   <div class="w-a4 place-self-center py-2 flex gap-2 justify-end">
     <Dialog.Root
       bind:open={dialogOpen}
@@ -148,9 +158,9 @@
 
 <div
   data-empty={notEmptyForm}
-  class="group size-a4 border bg-white text-black! place-self-center shadow-2xl print:shadow-none print:m-0 my-8 p-15 font-sans!"
+  class="group size-a4 border bg-white text-black! flex flex-col place-self-center shadow-2xl print:shadow-none print:m-0 my-8 px-15 py-10 font-sans!"
 >
-  <div class="flex items-center justify-between mb-2">
+  <div class="flex items-center justify-between">
     <p class="text-xs font-bold border border-black px-2 py-1">
       PHRMDO Form No.
       <span class="underline">04</span>
@@ -237,9 +247,16 @@
             class="h-8 flex border-b gap-1 border-black items-end justify-center text-sm"
           >
             {#if data.userLeave}
-              {formatDate(data.userLeave.inclusive_from)}
-              <span>-</span>
-              {formatDate(data.userLeave.inclusive_to)}
+              {@const sameInclusiveFromAndTo =
+                data.userLeave.inclusive_to === data.userLeave.inclusive_from}
+              {formatDate(
+                data.userLeave.inclusive_from,
+                sameInclusiveFromAndTo ? "long" : "short",
+              )}
+              {#if !sameInclusiveFromAndTo}
+                <span>-</span>
+                {formatDate(data.userLeave.inclusive_to)}
+              {/if}
             {/if}
           </div>
         </div>
@@ -263,9 +280,8 @@
             Certification/Recommendation:
           </h2>
           <p class="text-[10px] mb-2 font-semibold">
-            As of <span class="group-data-empty:hidden"
-              >{formatDate(NativeDateHelper.today(), "long")}</span
-            >
+            As of
+            <span class="group-data-empty:hidden">{todayDateFormatted}</span>
             <span
               class="hidden border-b border-black w-45 group-data-empty:inline-block"
             ></span>
@@ -349,6 +365,14 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="text-xs mt-auto place-self-end text-end group-data-empty:hidden">
+    {#if data.userLeave}
+      <div>Control: {getControlNumber(data.userLeave)}</div>
+    {/if}
+    <div>This is system generated document</div>
+    <div>Date Printed: {todayDateFormatted} {formatPHTime()}</div>
   </div>
 </div>
 

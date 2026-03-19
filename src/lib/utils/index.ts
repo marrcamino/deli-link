@@ -79,3 +79,4 @@ export function formatTime(
 export * from "./windows"
 export * from "./date-utils"
 export * from "./name-formatter"
+export * from "./date-prettifier"

@@ -1,15 +1,13 @@
-import { MONTHS_MAP } from "$lib/constants/months";
 import { getDBConn } from "$lib/db";
-import { setUserPref } from "$lib/helper";
 import { isUserIsExistInDatabase } from "$lib/services";
 import { NativeDateHelper } from "$lib/utils/date-utils";
+import { invoke } from "@tauri-apps/api/core";
 import type { PhysicalPosition } from "@tauri-apps/api/dpi";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
 import Papa from 'papaparse';
-import { getContext, setContext, tick, untrack } from "svelte";
+import { getContext, setContext, tick } from "svelte";
 import { toast } from "svelte-sonner";
-import { invoke } from "@tauri-apps/api/core";
 
 const CONTEXT_KEY = Symbol("logs-context");
 type MonthIndex = 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;

@@ -1,6 +1,7 @@
 use crate::db;
-use serde::{Deserialize, Serialize};
-use tauri::{AppHandle}; 
+use crate::models::DbResponse;
+use serde::Deserialize;
+use tauri::AppHandle;
 
 #[derive(Debug, Deserialize)]
 pub struct MachineUserLog {
@@ -9,11 +10,6 @@ pub struct MachineUserLog {
     pub time: String,
 }
 
-#[derive(Serialize)]
-pub struct DbResponse {
-    pub success: bool,
-    pub message: String,
-}
 #[tauri::command]
 pub async fn save_logs(
     app: AppHandle,
@@ -21,9 +17,7 @@ pub async fn save_logs(
     year: String,
     logs: Vec<MachineUserLog>,
 ) -> Result<DbResponse, String> {
-    let pool = db::handler::get_pool(&app).await?;
-    let mut tx: sqlx::Transaction<'_, sqlx::Sqlite> =
-        pool.begin().await.map_err(|e| e.to_string())?;
+    let mut tx = db::begin_tx(&app).await?;
 
     // 1. Delete Old Logs and capture the result
     let delete_result =

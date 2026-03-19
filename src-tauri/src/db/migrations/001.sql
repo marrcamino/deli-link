@@ -21,9 +21,14 @@ CREATE TABLE IF NOT EXISTS user_pref (
 CREATE TABLE IF NOT EXISTS leave_application (
   leave_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   user_fk INTEGER NOT NULL,
-  date_file TEXT NOT NULL,
-  inclusive_from TEXT NOT NULL,
-  inclusive_to TEXT NOT NULL,
-  is_approved INTEGER NOT NULL,
+  date_file TEXT DEFAULT CURRENT_DATE,
+  is_approved INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_fk) REFERENCES user (user_pk) ON DELETE CASCADE
+);
+CREATE TABLE IF NOT EXISTS leave_date (
+  date_record_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  leave_fk INTEGER NOT NULL,
+  date_value TEXT NOT NULL,
+  FOREIGN KEY (leave_fk) REFERENCES leave_application (leave_pk) ON DELETE CASCADE
 );

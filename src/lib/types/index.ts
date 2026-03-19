@@ -12,5 +12,4 @@ export type UserPrefRow = {
   }
 }[keyof UserPrefKeys]
 
-
-// export type 
+export type DateRecordEntityType = 'leave'

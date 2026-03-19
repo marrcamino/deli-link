@@ -1,5 +1,6 @@
 mod commands;
 mod db;
+mod models;
 
 use crate::db::handler::get_migrations;
 use tauri_plugin_sql::Builder;
@@ -14,7 +15,10 @@ pub fn run() {
         )
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
-        .invoke_handler(tauri::generate_handler![commands::logs::save_logs])
+        .invoke_handler(tauri::generate_handler![
+            commands::logs::save_logs,
+            commands::leave::save_leave_application
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
