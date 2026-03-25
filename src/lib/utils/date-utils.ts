@@ -83,6 +83,10 @@ export class IntlDateHelper {
       day
     );
   }
+  /** Converts ISO string -> CalendarDate */
+  static toDateValues(dates: string[]): DateValue[] {
+    return dates.map(date => this.toDateValue(date))
+  }
 }
 
 /** Date helper for Native JS Date / ISO dates */
@@ -209,12 +213,4 @@ export function formatPHTime(date: Date | string | number = new Date()): string 
     minute: '2-digit',
     hour12: true,
   }).format(d);
-}
-
-function sortDatesLatest(input: string) {
-  return input
-    .split(",")
-    .map(date => date.trim())
-    .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
-    .join();
 }

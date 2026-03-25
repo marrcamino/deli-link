@@ -18,10 +18,10 @@ export const ROUTES = [
   },
 
   {
-    name: "Application",
+    name: "Applications",
     routes: [
       {
-        title: "Wellness Leave",
+        title: "Leave Application",
         url: "/leave",
         icon: FileCheck,
       }

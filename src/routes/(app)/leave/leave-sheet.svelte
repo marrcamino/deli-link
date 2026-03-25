@@ -9,7 +9,12 @@
   import * as Sheet from "$lib/components/ui/sheet/index.js";
   import { getDBConn } from "$lib/db";
   import { calculateTotalDays, countTotalLeaveDays } from "$lib/helper";
-  import { formatDate, formatFullName, openPrintWindow } from "$lib/utils";
+  import {
+    formatDate,
+    formatFullName,
+    openPrintWindow,
+    prettifyDates,
+  } from "$lib/utils";
   import {
     ArrowRight,
     Calendar,
@@ -153,10 +158,7 @@
       </Sheet.Header>
       <div>
         {#each ctx.listOfLeave as leave (leave.leave_pk)}
-          {@const totalDays = calculateTotalDays(
-            leave.inclusive_from,
-            leave.inclusive_to,
-          )}
+          {@const totalDays = leave.dates.length}
           <div
             in:slide={{ duration: defaultInTransDuration }}
             out:slide={{ delay: 200, duration: 250 }}
@@ -245,9 +247,17 @@
                       </div>
                       <div class="text-sm">
                         <p class="font-semibold flex items-center gap-2">
-                          {formatDate(leave.inclusive_from)}
+                          {#if leave.dates.length === 0}
+                            {formatDate(leave.dates[0].date_value, "long")}
+                          {:else}
+                            {prettifyDates(
+                              leave.dates.map((d) => d.date_value),
+                            )}
+                          {/if}
+                          <!-- {formatDate(leave.dates[0].date_value)}
+
                           <ArrowRight class="text-muted-foreground size-4" />
-                          {formatDate(leave.inclusive_to)}
+                          {formatDate(leave.dates[0].date_value)} -->
                         </p>
                         <p class="text-xs text-muted-foreground font-light">
                           Date File: {formatDate(leave.date_file)}
@@ -273,7 +283,10 @@
           <div class="overflow-hidden pb-4">
             <div
               in:fly={{ delay: 400, y: 10, opacity: 0 }}
-              out:fly={{ duration: defaultInTransDuration === 0 ? 0 : 400, y: -20 }}
+              out:fly={{
+                duration: defaultInTransDuration === 0 ? 0 : 400,
+                y: -20,
+              }}
             >
               <Empty.Root class="border">
                 <Empty.Header>

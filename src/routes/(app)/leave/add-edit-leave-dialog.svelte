@@ -1,14 +1,14 @@
 <script lang="ts">
   import Asterisk from "$lib/components/display/asterisk.svelte";
+  import DateMultiplePicker from "$lib/components/inputs/date/date-multiple-picker.svelte";
   import DatePicker from "$lib/components/inputs/date/date-picker.svelte";
   import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
   import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-
-  import DateMultiplePicker from "$lib/components/inputs/date/date-multiple-picker.svelte";
   import { getDBConn } from "$lib/db";
+  import type { LeaveApplicationWithDate } from "$lib/types";
   import {
     formatFullName,
     IntlDateHelper,
@@ -17,14 +17,21 @@
   } from "$lib/utils";
   import { type DateValue } from "@internationalized/date";
   import { Printer } from "@lucide/svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import { getLeaveContext } from "./context.svelte";
 
+  interface DbResponse {
+    success: boolean;
+    message: string;
+    data: LeaveApplicationWithDate;
+  }
+
   // let dateFile = $state(NativeDateHelper.isoToday);
   let dateFile: DateValue | undefined = $state(IntlDateHelper.today);
-  let startDateValue: DateValue | undefined = $state();
-  let endDateValue: DateValue | undefined = $state();
+  // let startDateValue: DateValue | undefined = $state();
+  // let endDateValue: DateValue | undefined = $state();
   let inclusiveDates: DateValue[] = $state([]);
   let currentLeave: LeaveApplication | null = $state(null);
   let isApprove = $state(false);
@@ -40,80 +47,49 @@
       return;
     }
 
-    const db = await getDBConn();
-    const created_at = NativeDateHelper.pHTimestamp();
-    const res = await db.execute(
-      `
-      INSERT INTO leave_application (user_fk, date_file, inclusive_from, inclusive_to, is_approved, created_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-      [
-        ctx.openUser?.user_pk,
-        dateFile?.toString(),
-        startDateValue?.toString(),
-        endDateValue?.toString(),
-        Number(isApprove),
+    try {
+      const created_at = NativeDateHelper.pHTimestamp();
+
+      const leaveApplicationToInsert = {
+        user_fk: ctx.openUser?.user_pk as number,
+        date_file: dateFile?.toString() as string,
+        is_approved: Number(isApprove) as Bit,
         created_at,
-      ],
-    );
-    let newLeaveId: number | null = null;
+      };
+      const res: DbResponse = await invoke("save_leave_application", {
+        leave: leaveApplicationToInsert,
+        dates: inclusiveDates
+          .map((d) => d.toString())
+          .map((d) => ({ date_value: d })),
+      });
 
-    if (!res.rowsAffected) {
-      toast.error("There was an error while saving leave");
-      return;
+      toast.success(res.message);
+      ctx.add(res.data);
+    } catch (e) {
+      console.error(e);
+      toast.error("There was an error while saving", {
+        description: "Please try again",
+      });
     }
-
-    newLeaveId = res.lastInsertId!;
-
-    toast.success("Leave succesfully saved");
-
-    const newLeave = {
-      leave_pk: newLeaveId,
-      date_file: dateFile!.toString(),
-      user_fk: ctx.openUser?.user_pk!,
-      inclusive_from: startDateValue?.toString()!,
-      inclusive_to: endDateValue?.toString()!,
-      is_approved: Number(isApprove) as Bit,
-      created_at,
-    };
-    currentLeave = newLeave;
-    ctx.add(newLeave);
   }
 
   async function updateLeave() {
-    const db = await getDBConn();
+    try {
+      if (!ctx.openLeave) return;
+      const leave = ctx.openLeave;
+      const res: DbResponse = await invoke("update_leave_application", {
+        leave: leave,
+        newDates: inclusiveDates.map((d) => d.toString()),
+      });
 
-    const res = await db.execute(
-      `
-      UPDATE leave_application 
-      SET 
-        inclusive_from = ?, 
-        inclusive_to = ?,
-        is_approved = ?
-      WHERE leave_pk = ?
-    `,
-      [
-        startDateValue?.toString()!,
-        endDateValue?.toString()!,
-        Number(isApprove),
-        ctx.openLeave?.leave_pk!,
-      ],
-    );
-
-    if (!res.rowsAffected) {
-      toast.error("There was an error while updating leave application");
-      return;
+      toast.success(res.message);
+      ctx.update(res.data);
+    } catch (error) {
+      console.error(error);
+      toast.error("There was an error while updating", {
+        description: "Please try again",
+      });
     }
-
-    toast.success("Updated successfully");
-    ctx.update({
-      leave_pk: ctx.openLeave?.leave_pk!,
-      date_file: dateFile!.toString(),
-      user_fk: ctx.openUser?.user_pk!,
-      // inclusive_from: startDateValue?.toString()!,
-      // inclusive_to: endDateValue?.toString()!,
-      is_approved: Number(isApprove) as Bit,
-    });
   }
 
   $effect(() => {
@@ -123,8 +99,9 @@
       if (!ctx.openLeave || !ctx.addEditDialogState) return;
       const leave = ctx.openLeave;
       dateFile = IntlDateHelper.toDateValue(leave.date_file);
-      // startDateValue = IntlDateHelper.toDateValue(leave.inclusive_from);
-      // endDateValue = IntlDateHelper.toDateValue(leave.inclusive_to);
+      inclusiveDates = IntlDateHelper.toDateValues(
+        leave.dates.map((d) => d.date_value),
+      );
       currentLeave = leave;
       isApprove = Boolean(leave.is_approved);
     });
@@ -137,8 +114,7 @@
     if (!isOpen) {
       ctx.openLeave = null;
       dateFile = IntlDateHelper.today;
-      startDateValue = undefined;
-      endDateValue = undefined;
+      inclusiveDates = [];
       currentLeave = null;
       isApprove = false;
     }

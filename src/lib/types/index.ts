@@ -12,4 +12,4 @@ export type UserPrefRow = {
   }
 }[keyof UserPrefKeys]
 
-export type DateRecordEntityType = 'leave'
+export type LeaveApplicationWithDate = LeaveApplication & { dates: LeaveDate[] }

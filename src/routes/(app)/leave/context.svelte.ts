@@ -1,11 +1,12 @@
 import { getLeaveApplications, getUsers } from "$lib/services";
+import type { LeaveApplicationWithDate } from "$lib/types";
 import { getContext, setContext, untrack } from "svelte";
 const CONTEXT_KEY = Symbol("leave-context");
 
 class LeaveContext {
   users: User[] = $state([])
   openUser: User | null = $state(null)
-  openLeave: LeaveApplication | null = $state(null)
+  openLeave: LeaveApplicationWithDate | null = $state(null)
 
   sheetState = $state(false)
   addEditDialogState = $state(false)
@@ -13,7 +14,7 @@ class LeaveContext {
 
   selectedYear = $state(new Date().getFullYear().toString())
 
-  listOfLeave: LeaveApplication[] = $state([])
+  listOfLeave: LeaveApplicationWithDate[] = $state([])
 
   constructor() {
     getUsers().then(u => this.users = u)
@@ -34,7 +35,7 @@ class LeaveContext {
     return await getLeaveApplications(id, this.selectedYear.toString(), approveStatus)
   }
 
-  add(newLeave: LeaveApplication) {
+  add(newLeave: LeaveApplicationWithDate) {
     this.listOfLeave = [newLeave, ...this.listOfLeave]
   }
   remove(id: number) {
