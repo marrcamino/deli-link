@@ -32,7 +32,7 @@ class LeaveContext {
   }
 
   async getLeaveApplications(id: number, approveStatus?: 'approve_only' | 'not_approve_only') {
-    return await getLeaveApplications(id, this.selectedYear.toString(), approveStatus)
+    return await getLeaveApplications(id, { year: this.selectedYear.toString(), approveStatus })
   }
 
   add(newLeave: LeaveApplicationWithDate) {

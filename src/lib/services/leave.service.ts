@@ -1,37 +1,30 @@
 import { getDBConn } from "$lib/db";
 import type { LeaveApplicationWithDate } from "$lib/types";
 import { NativeDateHelper } from "$lib/utils";
+import type { LeaveType } from "$lib/constants"
 
-/**
- * Fetches leave applications for a specific user and year, with optional approval status filtering.
- *
- * @param userId - The ID of the user whose leave applications are being fetched.
- * @param year - The year to filter leave applications by. Defaults to the current year.
- * @param approveStatus - Optional filter to get only approved or not approved leave applications.
- *                        - `'approve_only'` returns only approved leaves.
- *                        - `'not_approve_only'` returns only unapproved leaves.
- * @returns A promise that resolves to an array of `LeaveApplication` objects matching the criteria.
- *
- * @example
- * const leaves = await getLeaveApplications(123);
- * const approvedLeaves = await getLeaveApplications(123, 2026, 'approve_only');
- */
 export async function getLeaveApplications(
   userId: number | string,
-  year: number | string = NativeDateHelper.currentYear,
-  approveStatus?: 'approve_only' | 'not_approve_only'
+  options?: {
+    year?: number | string,
+    approveStatus?: 'approve_only' | 'not_approve_only',
+    leaveType?: LeaveType
+  }
 ): Promise<LeaveApplicationWithDate[]> {
   const db = await getDBConn();
 
   const conditions: string[] = ['user_fk = ?'];
   const params: any[] = [userId];
 
-  const yearStr = year.toString();
+  const yearStr = options?.year?.toString() || NativeDateHelper.currentYear;
   conditions.push("strftime('%Y', created_at) = ?");
   params.push(yearStr);
 
-  if (approveStatus === 'approve_only') conditions.push('is_approved = 1');
-  if (approveStatus === 'not_approve_only') conditions.push('is_approved = 0');
+  if (options?.approveStatus === 'approve_only') conditions.push('is_approved = 1');
+  if (options?.approveStatus === 'not_approve_only') conditions.push('is_approved = 0');
+
+  if (options?.leaveType === 'Wellness Leave') conditions.push('leave_type = 1');
+  if (options?.leaveType === 'Office Leave') conditions.push('leave_type = 2');
 
   const leaveQuery = `
     SELECT *

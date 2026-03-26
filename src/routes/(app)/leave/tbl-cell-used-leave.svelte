@@ -2,6 +2,7 @@
   import { countTotalLeaveDays } from "$lib/helper";
   import { onMount, untrack } from "svelte";
   import { getLeaveContext } from "./context.svelte";
+  import type { LeaveApplicationWithDate } from "$lib/types";
   interface Props {
     user: User;
   }
@@ -9,10 +10,13 @@
 
   const ctx = getLeaveContext();
 
-  let leaveApplications: LeaveApplication[] = $state([]);
+  let leaveApplications: LeaveApplicationWithDate[] = $state([]);
 
   async function setLeaveApplications() {
-    leaveApplications = await ctx.getLeaveApplications(user.user_pk, 'approve_only');
+    leaveApplications = await ctx.getLeaveApplications(
+      user.user_pk,
+      "approve_only",
+    );
   }
 
   // When the sheet is close
@@ -31,7 +35,13 @@
 
 <div class="flex items-end">
   {#if leaveApplications}
-    <span class="text-lg">{countTotalLeaveDays(leaveApplications)}</span>
+    <span class="text-lg">
+      {#if leaveApplications.length}
+        {countTotalLeaveDays($state.snapshot(leaveApplications))}
+      {:else}
+        0
+      {/if}
+    </span>
     <span class="text-muted-foreground">/</span>
     <span class="text-muted-foreground">5</span>
   {/if}

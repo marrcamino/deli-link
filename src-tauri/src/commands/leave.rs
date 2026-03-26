@@ -2,20 +2,21 @@ use crate::db;
 use crate::db::handler::get_pool;
 use crate::models::DbResponseWithData;
 use serde::{Deserialize, Serialize};
-use tauri::AppHandle; // Fix for Error 1
+use tauri::AppHandle;
 
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct LeaveApplication {
     pub leave_pk: Option<i64>,
     pub user_fk: i32,
     pub date_file: String,
+    pub leave_type: i32,
     pub is_approved: i32,
     pub created_at: String,
 }
 
 #[derive(Debug, Deserialize, Serialize, sqlx::FromRow)]
 pub struct LeaveDate {
-    pub date_record_pk: Option<i64>,
+    pub leave_date_pk: Option<i64>,
     pub leave_fk: Option<i64>,
     pub date_value: String,
 }
@@ -37,10 +38,11 @@ pub async fn save_leave_application(
 
     // 1. INSERT APPLICATION
     let leave_insert_result = sqlx::query(
-        "INSERT INTO leave_application (user_fk, date_file, is_approved, created_at) VALUES (?, ?, ?, ?)"
+        "INSERT INTO leave_application (user_fk, date_file, leave_type, is_approved, created_at) VALUES (?, ?, ?, ?, ?)"
     )
     .bind(&leave.user_fk)
     .bind(&leave.date_file)
+    .bind(&leave.leave_type)
     .bind(&leave.is_approved)
     .bind(&leave.created_at)
     .execute(&mut *tx)
@@ -64,7 +66,7 @@ pub async fn save_leave_application(
                 .map_err(|e| e.to_string())?;
 
         // Update the child PK
-        date.date_record_pk = Some(date_insert_result.last_insert_rowid() as i64);
+        date.leave_date_pk = Some(date_insert_result.last_insert_rowid() as i64);
     }
 
     tx.commit().await.map_err(|e| e.to_string())?;
@@ -84,15 +86,15 @@ pub async fn update_leave_application(
 ) -> Result<DbResponseWithData<LeaveWithChildren>, String> {
     let mut tx = crate::db::begin_tx(&app).await?;
 
-    // We access .leave because that is the name of the field in your struct
     let leave_pk = leave
         .leave
         .leave_pk
         .ok_or("Cannot update a leave application without a valid ID")?;
 
     // 1. UPDATE APPLICATION
-    sqlx::query("UPDATE leave_application SET date_file = ?, is_approved = ? WHERE leave_pk = ?")
+    sqlx::query("UPDATE leave_application SET date_file = ?, leave_type = ?,  is_approved = ? WHERE leave_pk = ?")
         .bind(&leave.leave.date_file)
+        .bind(&leave.leave.leave_type)
         .bind(&leave.leave.is_approved)
         .bind(leave_pk)
         .execute(&mut *tx)
@@ -105,8 +107,8 @@ pub async fn update_leave_application(
 
     for old_date in &leave.dates {
         if !new_dates.contains(&old_date.date_value) {
-            sqlx::query("DELETE FROM leave_date WHERE date_record_pk = ?")
-                .bind(old_date.date_record_pk)
+            sqlx::query("DELETE FROM leave_date WHERE leave_date_pk = ?")
+                .bind(old_date.leave_date_pk)
                 .execute(&mut *tx)
                 .await
                 .map_err(|e| e.to_string())?;
@@ -133,14 +135,14 @@ pub async fn update_leave_application(
         "SELECT * FROM leave_application WHERE leave_pk = ?",
     )
     .bind(leave_pk)
-    .fetch_one(&pool) // Pass a reference to the pool
+    .fetch_one(&pool)
     .await
     .map_err(|e: sqlx::Error| e.to_string())?;
 
     let updated_dates =
         sqlx::query_as::<sqlx::Sqlite, LeaveDate>("SELECT * FROM leave_date WHERE leave_fk = ?")
             .bind(leave_pk)
-            .fetch_all(&pool) // Pass a reference to the pool
+            .fetch_all(&pool)
             .await
             .map_err(|e: sqlx::Error| e.to_string())?;
 

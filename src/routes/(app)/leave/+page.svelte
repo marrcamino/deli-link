@@ -1,15 +1,14 @@
 <script lang="ts">
   import RouteContent from "$lib/components/route-content.svelte";
-  import { Button } from "$lib/components/ui/button/index.js";
-  import { Printer } from "@lucide/svelte";
-  import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { onMount } from "svelte";
-  import { setLeaveContext } from "./context.svelte";
+  import { buttonVariants } from "$lib/components/ui/button/index.js";
   import {
     createSvelteTable,
     FlexRender,
   } from "$lib/components/ui/data-table/index.js";
+  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import * as Table from "$lib/components/ui/table/index.js";
+  import { openPrintWindow } from "$lib/utils";
+  import { Printer } from "@lucide/svelte";
   import {
     type ColumnFiltersState,
     getCoreRowModel,
@@ -18,9 +17,11 @@
     type SortingState,
     type VisibilityState,
   } from "@tanstack/table-core";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { onMount } from "svelte";
+  import { setLeaveContext } from "./context.svelte";
   import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
-  import { openPrintWindow } from "$lib/utils";
 
   const ctx = setLeaveContext();
 
@@ -87,10 +88,26 @@
   {#snippet header()}
     <div class="w-full">
       <div class="flex items-center w-full place-self-center md:max-w-xl">
-        <Button class="ml-auto cursor-pointer" onclick={() => openPrintWindow()}>
-          <Printer />
-          Print Empty Form
-        </Button>
+        <DropdownMenu.Root>
+          <DropdownMenu.Trigger
+            class={buttonVariants({ class: "ml-auto cursor-pointer" })}
+          >
+            <Printer />
+            Print Empty Form
+          </DropdownMenu.Trigger>
+          <DropdownMenu.Content>
+            <DropdownMenu.Group>
+              <DropdownMenu.Item onclick={() => openPrintWindow()}>
+                Wellness Leave
+              </DropdownMenu.Item>
+              <DropdownMenu.Item
+                onclick={() => openPrintWindow(undefined, "ol")}
+              >
+                Office Leave
+              </DropdownMenu.Item>
+            </DropdownMenu.Group>
+          </DropdownMenu.Content>
+        </DropdownMenu.Root>
       </div>
     </div>
   {/snippet}

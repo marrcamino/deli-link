@@ -9,14 +9,13 @@ import { formatDate } from "../date-utils";
  * Opens a centered, clamped print preview window for a Leave Application.
  * Automatically closes the child window if the parent window is closed.
  */
-export const openPrintWindow = async (leave?: LeaveApplication) => {
+export const openPrintWindow = async (leave?: LeaveApplication, leaveType: "wl" | "ol" = 'wl') => {
   const width = 900;
   const height = 700;
   const parentWindow = getCurrentWindow();
 
   // 1. Stable Label & Title
   const childLabel = `print_leave_${leave?.leave_pk ?? "empty"}`;
-  const windowTitle = `Leave Application ${leave ? `(${formatDate(leave.inclusive_from)} to ${formatDate(leave.inclusive_to)})` : "- Empty Form"}`;
 
   // 2. Check for existing window
   const existingWindow = await WebviewWindow.getByLabel(childLabel);
@@ -29,11 +28,11 @@ export const openPrintWindow = async (leave?: LeaveApplication) => {
 
   // 3. Calculate position (Passing parentWindow directly)
   const { x, y } = await calculateSafeChildPosition(parentWindow, width, height);
-
+console.log( `/leave/${leave?.leave_pk ?? 'empty'}?type=${leaveType}`)
   // 4. Create the Window
   const webview = new WebviewWindow(childLabel, {
-    url: `/leave/${leave?.leave_pk ?? 'empty'}`,
-    title: windowTitle,
+    url: `/leave/${leave?.leave_pk ?? 'empty'}?yeah=${leaveType}`,
+    title: "Leave Application",
     resizable: true,
     width,
     height,
@@ -54,7 +53,7 @@ export const openPrintWindow = async (leave?: LeaveApplication) => {
     const childWindow = await WebviewWindow.getByLabel(childLabel);
     if (childWindow) await childWindow.close();
   }).then((unlisten) => {
-    // Optional: save unlisten if you need to cleanup later
+    // Optional: save unlisten if need to cleanup later
   });
 
   webview.once("tauri://error", (e) => {

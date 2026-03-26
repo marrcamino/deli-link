@@ -1,4 +1,5 @@
-import type { UserPrefKeys, DateRecordEntityType } from "$lib/types"
+import type { UserPrefKeys } from "$lib/types"
+import type { LeaveTypeKey } from "$lib/constants"
 
 declare global {
   // namespace App {
@@ -29,13 +30,14 @@ declare global {
     leave_pk: number;
     user_fk: User["user_pk"];
     date_file: string;
+    leave_type: LeaveTypeKey;
     is_approved: Bit;
     /** ex. 1999-01-01 06:30:55 */
     created_at: string;
   }
 
   interface LeaveDate {
-    date_record_pk: number;
+    leave_date_pk: number;
     leave_fk: LeaveApplication['leave_pk'];
     date_value: string;
   }

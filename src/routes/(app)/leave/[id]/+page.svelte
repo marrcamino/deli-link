@@ -4,15 +4,16 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { calculateTotalDays, getUserPref, setUserPref } from "$lib/helper";
+  import { getUserPref, setUserPref } from "$lib/helper";
   import {
     formatDate,
     formatFullName,
     formatPHTime,
     NativeDateHelper,
+    prettifyDates,
   } from "$lib/utils";
   import { Pencil, Printer } from "@lucide/svelte";
-  import { tick, untrack } from "svelte";
+  import { onMount, tick, untrack } from "svelte";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
@@ -27,6 +28,7 @@
 
   let waitingAfterSignatories = false;
   let todayDateFormatted = formatDate(NativeDateHelper.today(), "long");
+  import { getCurrentWindow } from "@tauri-apps/api/window";
 
   async function onsubmit(e: SubmitEvent) {
     e.preventDefault();
@@ -40,14 +42,14 @@
   }
 
   function printLeave() {
-    // if (page.params.id === "empty") {
-    //   window.print();
-    //   return;
-    // }
-    // if (!sigAoValue.trim() || !sigHeadValue.trim()) {
-    //   waitingAfterSignatories = true;
-    //   dialogOpen = true;
-    // } else window.print();
+    if (page.params.id === "empty") {
+      window.print();
+      return;
+    }
+    if (!sigAoValue.trim() || !sigHeadValue.trim()) {
+      waitingAfterSignatories = true;
+      dialogOpen = true;
+    } else window.print();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -82,6 +84,14 @@
       bindSigAoValue = sigAoValue;
       bindSigHeadValue = sigHeadValue;
     });
+  });
+
+  onMount(async () => {
+    if (data.days && data.userLeave) {
+      await getCurrentWindow().setTitle(
+        `Leave Application - ${formatFullName(data.userLeave, { abbreviateMiddle: true })} (${prettifyDates(data.days.map((d) => d.date_value))})`,
+      );
+    }
   });
 </script>
 
@@ -187,7 +197,8 @@
       </div>
     </div>
     <h1 class="mt-4 text-xl font-bold uppercase tracking-wide">
-      Application for Wellness Leave
+      Application for  {data.leaveType} {data.leaveType === "wl" ? "Wellness" : "Office"}
+      Leave
     </h1>
     <p class="text-sm italic">(for JOCOS)</p>
   </div>
@@ -232,11 +243,8 @@
           <div
             class="h-8 flex border-b border-black items-end justify-center text-sm"
           >
-            {#if data.userLeave}
-              {@const counts = calculateTotalDays(
-                data.userLeave.inclusive_from,
-                data.userLeave.inclusive_to,
-              )}
+            {#if data.days?.length}
+              {@const counts = data.days.length}
               {counts} Day{counts > 1 ? "s" : ""}
             {/if}
           </div>
@@ -246,17 +254,8 @@
           <div
             class="h-8 flex border-b gap-1 border-black items-end justify-center text-sm"
           >
-            {#if data.userLeave}
-              {@const sameInclusiveFromAndTo =
-                data.userLeave.inclusive_to === data.userLeave.inclusive_from}
-              {formatDate(
-                data.userLeave.inclusive_from,
-                sameInclusiveFromAndTo ? "long" : "short",
-              )}
-              {#if !sameInclusiveFromAndTo}
-                <span>-</span>
-                {formatDate(data.userLeave.inclusive_to)}
-              {/if}
+            {#if data.days}
+              {prettifyDates(data.days.map((d) => d.date_value))}
             {/if}
           </div>
         </div>
@@ -264,8 +263,11 @@
       <div class="flex flex-col justify-end items-center p-2">
         <span class="text-sm">
           {data.userLeave &&
-            formatFullName(data.userLeave, { order: "normal" })}</span
-        >
+            formatFullName(data.userLeave, {
+              order: "normal",
+              abbreviateMiddle: true,
+            })}
+        </span>
         <div class="w-full border-t border-black mb-1"></div>
         <span class="text-[11px] uppercase font-bold">
           Signature of Applicant</span
@@ -305,10 +307,14 @@
                   <span class="group-data-empty:hidden">5</span>
                 </td>
                 <td class="border-r border-black p-0.5">
-                  {data.leaveLeft !== null ? data.leaveLeft : ""}
+                  {data.allApproveLeaveDates
+                    ? data.allApproveLeaveDates.length
+                    : ""}
                 </td>
                 <td class="p-0.5">
-                  {data.leaveLeft !== null ? 5 - data.leaveLeft : ""}
+                  {data.allApproveLeaveDates
+                    ? 5 - data.allApproveLeaveDates.length
+                    : ""}
                 </td>
               </tr>
             </tbody>

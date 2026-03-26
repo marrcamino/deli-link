@@ -7,7 +7,7 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { getDBConn } from "$lib/db";
+  import LeaveTypeSelector from "$lib/components/inputs/leave-type-selector.svelte";
   import type { LeaveApplicationWithDate } from "$lib/types";
   import {
     formatFullName,
@@ -28,12 +28,11 @@
     data: LeaveApplicationWithDate;
   }
 
-  // let dateFile = $state(NativeDateHelper.isoToday);
   let dateFile: DateValue | undefined = $state(IntlDateHelper.today);
-  // let startDateValue: DateValue | undefined = $state();
-  // let endDateValue: DateValue | undefined = $state();
   let inclusiveDates: DateValue[] = $state([]);
+  let placeholder: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
+  let leaveType = $state("1");
   let isApprove = $state(false);
 
   const ctx = getLeaveContext();
@@ -53,6 +52,7 @@
       const leaveApplicationToInsert = {
         user_fk: ctx.openUser?.user_pk as number,
         date_file: dateFile?.toString() as string,
+        leave_type: Number(leaveType),
         is_approved: Number(isApprove) as Bit,
         created_at,
       };
@@ -65,6 +65,7 @@
 
       toast.success(res.message);
       ctx.add(res.data);
+      currentLeave = res.data;
     } catch (e) {
       console.error(e);
       toast.error("There was an error while saving", {
@@ -77,8 +78,17 @@
     try {
       if (!ctx.openLeave) return;
       const leave = ctx.openLeave;
+
       const res: DbResponse = await invoke("update_leave_application", {
-        leave: leave,
+        leave: {
+          leave_pk: leave.leave_pk,
+          user_fk: leave.user_fk,
+          date_file: dateFile?.toString() as string,
+          leave_type: Number(leaveType),
+          is_approved: Number(isApprove) as Bit,
+          created_at: leave.created_at,
+          dates: leave.dates,
+        },
         newDates: inclusiveDates.map((d) => d.toString()),
       });
 
@@ -92,6 +102,7 @@
     }
   }
 
+  // When dialog opens
   $effect(() => {
     ctx.openLeave;
 
@@ -103,7 +114,17 @@
         leave.dates.map((d) => d.date_value),
       );
       currentLeave = leave;
+      leaveType = leave.leave_type.toString();
       isApprove = Boolean(leave.is_approved);
+    });
+  });
+
+  $effect(() => {
+    dateFile;
+
+    untrack(() => {
+      if (!dateFile) return;
+      placeholder = dateFile;
     });
   });
 </script>
@@ -116,6 +137,7 @@
       dateFile = IntlDateHelper.today;
       inclusiveDates = [];
       currentLeave = null;
+      leaveType = "1";
       isApprove = false;
     }
   }}
@@ -141,7 +163,17 @@
               : ""}
           />
         </div>
-
+        <div>
+          <Label for="leave-type" class="grid gap-1.5">
+            <div>Type of Leave <Asterisk /></div>
+            <LeaveTypeSelector
+              required
+              name="leave-type"
+              class="w-full"
+              bind:value={leaveType}
+            />
+          </Label>
+        </div>
         <div class="grid gap-1">
           <Label for="date_file" class="grid gap-1">
             <div>Date File <Asterisk /></div>
@@ -162,6 +194,7 @@
               bind:values={inclusiveDates}
               name="date_file"
               triggerOptions={{ class: "max-w-77.5" }}
+              bind:placeholder
             />
           </Label>
         </div>
@@ -178,7 +211,8 @@
           class="mr-auto"
           disabled={!currentLeave}
           onclick={() => {
-            if (currentLeave) openPrintWindow(currentLeave);
+            if (!currentLeave) return;
+            openPrintWindow(currentLeave, leaveType === "1" ? "wl" : "ol");
           }}
         >
           <Printer />

@@ -1,7 +1,6 @@
 <script lang="ts">
   import * as Select from "$lib/components/ui/select/index.js";
   import { Select as SelectPrimitive } from "bits-ui";
-  import type { ComponentProps } from "svelte";
 
   interface Props {
     value?: string;

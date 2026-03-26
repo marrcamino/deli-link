@@ -1,3 +1,4 @@
+import type { LeaveApplicationWithDate } from "$lib/types";
 
 export function calculateTotalDays(from: string, to: string) {
   const startDate = new Date(from);
@@ -10,17 +11,13 @@ export function calculateTotalDays(from: string, to: string) {
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
 };
 
-export function countTotalLeaveDays(applications: LeaveApplication[]) {
-  return applications.reduce((total, leave) => {
-    // Append '+08:00' to force Philippines offset if the string is just 'YYYY-MM-DD'
-    const start = new Date(`${leave.inclusive_from}T00:00:00+08:00`);
-    const end = new Date(`${leave.inclusive_to}T00:00:00+08:00`);
+export function countTotalLeaveDays(leaves: LeaveApplicationWithDate[] | LeaveDate[]) {
+  if (!leaves.length) return 0 // If empty
+  
+  if ('dates' in leaves[0]) {
+    let counts = 0
+    return (leaves as LeaveApplicationWithDate[]).map(l => counts += l.dates.length).length
+  }
 
-    const diffInMs = end.getTime() - start.getTime();
-
-    // Convert ms to days and add 1 for inclusivity
-    const days = Math.round(diffInMs / (1000 * 60 * 60 * 24)) + 1;
-
-    return total + (days > 0 ? days : 0);
-  }, 0);
+  return leaves.length
 };

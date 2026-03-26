@@ -1,14 +1,15 @@
 <script lang="ts">
   import YearSelector from "$lib/components/inputs/year-selector.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
+  import Badge from "$lib/components/ui/badge/badge.svelte";
   import { Button } from "$lib/components/ui/button/index.js";
   import * as Card from "$lib/components/ui/card";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import * as Empty from "$lib/components/ui/empty/index.js";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
+  import { LEAVE_TYPE_MAP } from "$lib/constants";
   import { getDBConn } from "$lib/db";
-  import { calculateTotalDays, countTotalLeaveDays } from "$lib/helper";
   import {
     formatDate,
     formatFullName,
@@ -16,25 +17,23 @@
     prettifyDates,
   } from "$lib/utils";
   import {
-    ArrowRight,
     Calendar,
+    CircleCheck,
     EllipsisVertical,
     FileX,
     Pencil,
     Plus,
     Printer,
     Trash2,
-    CircleCheck,
     Undo2,
   } from "@lucide/svelte";
+  import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import { expoIn, expoOut } from "svelte/easing";
-  import { fade, fly, scale, slide } from "svelte/transition";
+  import { fly, scale, slide } from "svelte/transition";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
-  import { getLeaveContext } from "./context.svelte";
-  import Badge from "$lib/components/ui/badge/badge.svelte";
-  import { untrack } from "svelte";
   import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
+  import { getLeaveContext } from "./context.svelte";
 
   let openComplete = $state(false);
   let defaultInTransDuration = $derived(openComplete ? 300 : 0);
@@ -132,16 +131,21 @@
 
     <ScrollArea viewPortClasses="max-h-dvh" class="px-4">
       <Sheet.Header class="sticky top-0 z-1 bg-background px-0">
-        <div class="font-semibold text-lg">
-          {ctx.openUser && formatFullName(ctx.openUser)}
+        <div class="font-semibold text-lg grid">
+          {#if ctx.openUser}
+            <p>{formatFullName(ctx.openUser)}</p>
+            <p class="text-sm text-muted-foreground">{ctx.openUser.designation}</p>
+          {/if}
         </div>
         <div class="flex mt-1">
-          <div class=" self-end">
-            <div class="leading-4 text-sm text-muted-foreground">
-              Leave Balance
+          <div class="text-xs self-end">
+            <div class="leading-4">
+              <span>Wellness Leave bal.</span>
+              <span class="text-muted-foreground">0/5</span>
             </div>
-            <div class="leading-4 text-lg font-semibold">
-              {countTotalLeaveDays(ctx.listOfLeave)} out of 5
+            <div class="leading-4">
+              <span>Office Leave bal.</span>
+              <span class="text-muted-foreground">0/2</span>
             </div>
           </div>
           <div class="ml-auto flex gap-2">
@@ -202,7 +206,7 @@
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
                           onclick={() => {
-                            openPrintWindow(leave);
+                            openPrintWindow(leave, leave.leave_type === 1 ? "wl" : "ol");
                           }}
                         >
                           <Printer />
@@ -254,13 +258,12 @@
                               leave.dates.map((d) => d.date_value),
                             )}
                           {/if}
-                          <!-- {formatDate(leave.dates[0].date_value)}
-
-                          <ArrowRight class="text-muted-foreground size-4" />
-                          {formatDate(leave.dates[0].date_value)} -->
                         </p>
-                        <p class="text-xs text-muted-foreground font-light">
-                          Date File: {formatDate(leave.date_file)}
+                        <p
+                          class="text-xs text-muted-foreground font-light space-x-4"
+                        >
+                          <span>Date File: {formatDate(leave.date_file)}</span>
+                          <span>Type: {LEAVE_TYPE_MAP[leave.leave_type]}</span>
                         </p>
                       </div>
                     </div>
