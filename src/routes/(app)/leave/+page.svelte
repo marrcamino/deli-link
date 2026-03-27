@@ -8,7 +8,7 @@
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import * as Table from "$lib/components/ui/table/index.js";
   import { openPrintWindow } from "$lib/utils";
-  import { Printer } from "@lucide/svelte";
+  import { ChevronDown, Printer } from "@lucide/svelte";
   import {
     type ColumnFiltersState,
     getCoreRowModel,
@@ -22,6 +22,7 @@
   import { setLeaveContext } from "./context.svelte";
   import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
+  
 
   const ctx = setLeaveContext();
 
@@ -92,8 +93,8 @@
           <DropdownMenu.Trigger
             class={buttonVariants({ class: "ml-auto cursor-pointer" })}
           >
-            <Printer />
             Print Empty Form
+            <ChevronDown />
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Group>

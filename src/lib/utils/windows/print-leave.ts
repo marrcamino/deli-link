@@ -28,10 +28,10 @@ export const openPrintWindow = async (leave?: LeaveApplication, leaveType: "wl" 
 
   // 3. Calculate position (Passing parentWindow directly)
   const { x, y } = await calculateSafeChildPosition(parentWindow, width, height);
-console.log( `/leave/${leave?.leave_pk ?? 'empty'}?type=${leaveType}`)
+  
   // 4. Create the Window
   const webview = new WebviewWindow(childLabel, {
-    url: `/leave/${leave?.leave_pk ?? 'empty'}?yeah=${leaveType}`,
+    url: `/leave/${leave?.leave_pk ?? 'empty'}?type=${leaveType}`,
     title: "Leave Application",
     resizable: true,
     width,

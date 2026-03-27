@@ -18,6 +18,9 @@
 
   let { data }: { data: PageData } = $props();
 
+  let printTypeIsWellness = $derived(
+    (page.url.searchParams.get("type") as "wl" | "ol") === "wl",
+  );
   let dialogOpen = $state(false);
   let notEmptyForm = $derived(page.params.id === "empty" ? "" : null);
   let sigAoValue = $state("");
@@ -42,14 +45,14 @@
   }
 
   function printLeave() {
-    if (page.params.id === "empty") {
-      window.print();
-      return;
-    }
-    if (!sigAoValue.trim() || !sigHeadValue.trim()) {
-      waitingAfterSignatories = true;
-      dialogOpen = true;
-    } else window.print();
+    // if (page.params.id === "empty") {
+    //   window.print();
+    //   return;
+    // }
+    // if (!sigAoValue.trim() || !sigHeadValue.trim()) {
+    //   waitingAfterSignatories = true;
+    //   dialogOpen = true;
+    // } else window.print();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -170,13 +173,15 @@
   data-empty={notEmptyForm}
   class="group size-a4 border bg-white text-black! flex flex-col place-self-center shadow-2xl print:shadow-none print:m-0 my-8 px-15 py-10 font-sans!"
 >
-  <div class="flex items-center justify-between">
-    <p class="text-xs font-bold border border-black px-2 py-1">
-      PHRMDO Form No.
-      <span class="underline">04</span>
-    </p>
-    <span class="text-[12px] font-semibold">Annex A</span>
-  </div>
+  {#if printTypeIsWellness}
+    <div class="flex items-center justify-between">
+      <p class="text-xs font-bold border border-black px-2 py-1">
+        PHRMDO Form No.
+        <span class="underline">04</span>
+      </p>
+      <span class="text-[12px] font-semibold">Annex A</span>
+    </div>
+  {/if}
 
   <div class="flex flex-col items-center text-center mb-6 mt-8">
     <div class="flex gap-4">
@@ -197,8 +202,7 @@
       </div>
     </div>
     <h1 class="mt-4 text-xl font-bold uppercase tracking-wide">
-      Application for  {data.leaveType} {data.leaveType === "wl" ? "Wellness" : "Office"}
-      Leave
+      Application for {printTypeIsWellness ? "Wellness" : "Office"} Leave
     </h1>
     <p class="text-sm italic">(for JOCOS)</p>
   </div>
@@ -261,7 +265,7 @@
         </div>
       </div>
       <div class="flex flex-col justify-end items-center p-2">
-        <span class="text-sm">
+        <span class="text-sm uppercase text-[13px] font-bold leading-3.5">
           {data.userLeave &&
             formatFullName(data.userLeave, {
               order: "normal",
@@ -269,7 +273,7 @@
             })}
         </span>
         <div class="w-full border-t border-black mb-1"></div>
-        <span class="text-[11px] uppercase font-bold">
+        <span class="text-[11px] font-semibold leading-3.5 -translate-y-1">
           Signature of Applicant</span
         >
       </div>
@@ -304,7 +308,9 @@
             <tbody>
               <tr class="h-6.5 font-semibold text-sm">
                 <td class="border-r border-black">
-                  <span class="group-data-empty:hidden">5</span>
+                  <span class="group-data-empty:hidden">
+                    {printTypeIsWellness ? 5 : 2}
+                  </span>
                 </td>
                 <td class="border-r border-black p-0.5">
                   {data.allApproveLeaveDates
@@ -312,9 +318,11 @@
                     : ""}
                 </td>
                 <td class="p-0.5">
-                  {data.allApproveLeaveDates
-                    ? 5 - data.allApproveLeaveDates.length
-                    : ""}
+                  {#if data.allApproveLeaveDates}
+                    {printTypeIsWellness
+                      ? 5
+                      : 2 - data.allApproveLeaveDates.length}
+                  {/if}
                 </td>
               </tr>
             </tbody>

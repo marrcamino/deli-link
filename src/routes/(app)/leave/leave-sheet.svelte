@@ -151,7 +151,7 @@
           <div class="ml-auto flex gap-2">
             <YearSelector
               size="sm"
-              class="w-29"
+              class="w-19"
               bind:value={ctx.selectedYear}
             />
             <Button size="sm" onclick={() => (ctx.addEditDialogState = true)}>

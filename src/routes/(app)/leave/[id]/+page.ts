@@ -4,7 +4,7 @@ import { getLeaveApplications } from '$lib/services';
 import type { PageLoad } from './$types';
 
 
-export const load: PageLoad = async ({ params, url }) => {
+export const load: PageLoad = async ({ params }) => {
 
   if (isNaN(Number(params.id))) return { userLeave: null, leaveLeft: null }
 
@@ -22,7 +22,10 @@ export const load: PageLoad = async ({ params, url }) => {
   const userLeave = (await db.select<any>(sql, [params.id]))[0] as LeaveApplication & User
   const days = await db.select<LeaveDate[]>("SELECT * FROM leave_date WHERE leave_fk = ?", [params.id])
 
-  const allApprovedLeave = await getLeaveApplications(userLeave.user_fk, { approveStatus: "approve_only" })
+  const allApprovedLeave = await getLeaveApplications(userLeave.user_fk, {
+    approveStatus: "approve_only",
+    leaveType: userLeave.leave_type === 1 ? "Wellness Leave" : "Office Leave"
+  })
 
   let allApproveLeaveDates: LeaveDate[] = []
 
@@ -32,7 +35,6 @@ export const load: PageLoad = async ({ params, url }) => {
   }
 
   return {
-    leaveType: url.searchParams.get('yeah') as "wl" | "ol",
     userLeave,
     days,
     allApproveLeaveDates,
