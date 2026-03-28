@@ -1,7 +1,7 @@
+import type { LeaveTypeKey } from "$lib/constants";
 import { getDBConn } from "$lib/db";
 import type { LeaveApplicationWithDate } from "$lib/types";
 import { NativeDateHelper } from "$lib/utils";
-import type { LeaveType } from "$lib/constants"
 
 /**
  * Retrieves leave applications for a specific user with optional filtering.
@@ -12,7 +12,7 @@ import type { LeaveType } from "$lib/constants"
  * @param {number | string} [options.year] - The year to filter by. Defaults to the current year if not provided.
  * @param {number | string} [options.month] - The month to filter by (1-12). If provided, filters results to that specific month.
  * @param {'approve_only' | 'not_approve_only'} [options.approveStatus] - Filter to show only approved or only non-approved applications.
- * @param {LeaveType} [options.leaveType] - Filter by a specific type of leave (e.g., 'Wellness Leave', 'Office Leave').
+ * @param {LeaveTypeKey} [options.leaveType] - Filter by a specific type of leave (e.g., 'Wellness Leave', 'Office Leave').
  * @returns {Promise<LeaveApplicationWithDate[]>} A list of leave applications including their nested date details.
  */
 export async function getLeaveApplications(
@@ -21,7 +21,7 @@ export async function getLeaveApplications(
     year?: number | string,
     month?: number | string,
     approveStatus?: 'approve_only' | 'not_approve_only',
-    leaveType?: LeaveType
+    leaveType?: LeaveTypeKey
   }
 ): Promise<LeaveApplicationWithDate[]> {
   const db = await getDBConn();
@@ -42,8 +42,8 @@ export async function getLeaveApplications(
   if (options?.approveStatus === 'approve_only') conditions.push('is_approved = 1');
   if (options?.approveStatus === 'not_approve_only') conditions.push('is_approved = 0');
 
-  if (options?.leaveType === 'Wellness Leave') conditions.push('leave_type = 1');
-  if (options?.leaveType === 'Office Leave') conditions.push('leave_type = 2');
+  if (options?.leaveType === 'WELLNESS') conditions.push('leave_type = 1');
+  if (options?.leaveType === 'OFFICE') conditions.push('leave_type = 2');
 
   const leaveQuery = `
     SELECT *

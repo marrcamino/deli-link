@@ -1,8 +1,9 @@
 export const LEAVE_TYPE_MAP = {
-  1: "Wellness Leave",
-  2: "Office Leave",
+  WELLNESS: "Wellness Leave",
+  OFFICE: "Office Leave",
 } as const
 export type LeaveTypeKey = keyof typeof LEAVE_TYPE_MAP
-export type LeaveType = typeof LEAVE_TYPE_MAP[keyof typeof LEAVE_TYPE_MAP];
+export type LeaveTypeValue = typeof LEAVE_TYPE_MAP[keyof typeof LEAVE_TYPE_MAP];
 
-export * from "./months"
+export * from "./months";
+

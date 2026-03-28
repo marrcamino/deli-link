@@ -9,7 +9,7 @@ pub struct LeaveApplication {
     pub leave_pk: Option<i64>,
     pub user_fk: i32,
     pub date_file: String,
-    pub leave_type: i32,
+    pub leave_type: String,
     pub is_approved: i32,
     pub created_at: String,
 }

@@ -4,6 +4,7 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
+  import type { LeaveTypeKey } from "$lib/constants";
   import { getUserPref, setUserPref } from "$lib/helper";
   import {
     formatDate,
@@ -13,13 +14,14 @@
     prettifyDates,
   } from "$lib/utils";
   import { Pencil, Printer } from "@lucide/svelte";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, tick, untrack } from "svelte";
   import type { PageData } from "./$types";
 
   let { data }: { data: PageData } = $props();
 
   let printTypeIsWellness = $derived(
-    (page.url.searchParams.get("type") as "wl" | "ol") === "wl",
+    (page.url.searchParams.get("type") as LeaveTypeKey) === "WELLNESS",
   );
   let dialogOpen = $state(false);
   let notEmptyForm = $derived(page.params.id === "empty" ? "" : null);
@@ -31,7 +33,6 @@
 
   let waitingAfterSignatories = false;
   let todayDateFormatted = formatDate(NativeDateHelper.today(), "long");
-  import { getCurrentWindow } from "@tauri-apps/api/window";
 
   async function onsubmit(e: SubmitEvent) {
     e.preventDefault();

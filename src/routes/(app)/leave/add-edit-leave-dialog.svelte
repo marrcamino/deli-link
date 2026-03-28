@@ -2,12 +2,13 @@
   import Asterisk from "$lib/components/display/asterisk.svelte";
   import DateMultiplePicker from "$lib/components/inputs/date/date-multiple-picker.svelte";
   import DatePicker from "$lib/components/inputs/date/date-picker.svelte";
+  import LeaveTypeSelector from "$lib/components/inputs/leave-type-selector.svelte";
   import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
   import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import LeaveTypeSelector from "$lib/components/inputs/leave-type-selector.svelte";
+  import type { LeaveTypeKey } from "$lib/constants";
   import type { LeaveApplicationWithDate } from "$lib/types";
   import {
     formatFullName,
@@ -32,7 +33,7 @@
   let inclusiveDates: DateValue[] = $state([]);
   let placeholder: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
-  let leaveType = $state("1");
+  let leaveType = $state<LeaveTypeKey>("WELLNESS");
   let isApprove = $state(false);
 
   const ctx = getLeaveContext();
@@ -52,10 +53,13 @@
       const leaveApplicationToInsert = {
         user_fk: ctx.openUser?.user_pk as number,
         date_file: dateFile?.toString() as string,
-        leave_type: Number(leaveType),
+        leave_type: leaveType,
         is_approved: Number(isApprove) as Bit,
         created_at,
       };
+
+      console.log(leaveApplicationToInsert);
+      
       const res: DbResponse = await invoke("save_leave_application", {
         leave: leaveApplicationToInsert,
         dates: inclusiveDates
@@ -84,7 +88,7 @@
           leave_pk: leave.leave_pk,
           user_fk: leave.user_fk,
           date_file: dateFile?.toString() as string,
-          leave_type: Number(leaveType),
+          leave_type: leaveType,
           is_approved: Number(isApprove) as Bit,
           created_at: leave.created_at,
           dates: leave.dates,
@@ -114,7 +118,7 @@
         leave.dates.map((d) => d.date_value),
       );
       currentLeave = leave;
-      leaveType = leave.leave_type.toString();
+      leaveType = leave.leave_type;
       isApprove = Boolean(leave.is_approved);
     });
   });
@@ -137,7 +141,7 @@
       dateFile = IntlDateHelper.today;
       inclusiveDates = [];
       currentLeave = null;
-      leaveType = "1";
+      leaveType = "WELLNESS";
       isApprove = false;
     }
   }}
@@ -212,7 +216,7 @@
           disabled={!currentLeave}
           onclick={() => {
             if (!currentLeave) return;
-            openPrintWindow(currentLeave, leaveType === "1" ? "wl" : "ol");
+            openPrintWindow(currentLeave, leaveType);
           }}
         >
           <Printer />

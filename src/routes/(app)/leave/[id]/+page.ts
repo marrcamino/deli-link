@@ -24,7 +24,7 @@ export const load: PageLoad = async ({ params }) => {
 
   const allApprovedLeave = await getLeaveApplications(userLeave.user_fk, {
     approveStatus: "approve_only",
-    leaveType: userLeave.leave_type === 1 ? "Wellness Leave" : "Office Leave"
+    leaveType: userLeave.leave_type
   })
 
   let allApproveLeaveDates: LeaveDate[] = []

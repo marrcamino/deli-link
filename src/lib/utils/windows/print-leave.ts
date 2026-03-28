@@ -1,15 +1,14 @@
 import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { getCurrentWindow } from '@tauri-apps/api/window';
-
+import type { LeaveTypeKey } from '$lib/constants';
 import { calculateSafeChildPosition } from '.';
-import { formatDate } from "../date-utils";
 
 
 /**
  * Opens a centered, clamped print preview window for a Leave Application.
  * Automatically closes the child window if the parent window is closed.
  */
-export const openPrintWindow = async (leave?: LeaveApplication, leaveType: "wl" | "ol" = 'wl') => {
+export const openPrintWindow = async (leave?: LeaveApplication, leaveType: LeaveTypeKey = 'WELLNESS') => {
   const width = 900;
   const height = 700;
   const parentWindow = getCurrentWindow();
@@ -28,7 +27,7 @@ export const openPrintWindow = async (leave?: LeaveApplication, leaveType: "wl" 
 
   // 3. Calculate position (Passing parentWindow directly)
   const { x, y } = await calculateSafeChildPosition(parentWindow, width, height);
-  
+
   // 4. Create the Window
   const webview = new WebviewWindow(childLabel, {
     url: `/leave/${leave?.leave_pk ?? 'empty'}?type=${leaveType}`,

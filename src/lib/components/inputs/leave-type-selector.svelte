@@ -1,10 +1,10 @@
 <script lang="ts">
   import * as Select from "$lib/components/ui/select/index.js";
-  import { LEAVE_TYPE_MAP } from "$lib/constants";
+  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
   import { Select as SelectPrimitive } from "bits-ui";
 
   interface Props {
-    value?: string;
+    value?: LeaveTypeKey;
     placeholder?: string;
     size?: "sm" | "default";
     required?: boolean;
@@ -12,13 +12,16 @@
   }
 
   let {
-    value = $bindable(""),
+    value = $bindable(),
     placeholder = "Select leave type",
     required,
     name,
     ...restProps
   }: Props &
-    Omit<SelectPrimitive.TriggerProps, "children" | "child"> = $props();
+    Omit<
+      SelectPrimitive.TriggerProps,
+      "children" | "child" | "value"
+    > = $props();
 
   const triggerContent = $derived(
     Object.entries(LEAVE_TYPE_MAP).find(
@@ -40,7 +43,7 @@
   <Select.Content class="max-h-64 overflow-y-auto">
     <Select.Group>
       {#each Object.entries(LEAVE_TYPE_MAP) as [value, label] (value)}
-        <Select.Item value={value.toString()} {label}>
+        <Select.Item {value} {label}>
           {label}
         </Select.Item>
       {/each}

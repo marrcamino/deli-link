@@ -134,7 +134,9 @@
         <div class="font-semibold text-lg grid">
           {#if ctx.openUser}
             <p>{formatFullName(ctx.openUser)}</p>
-            <p class="text-sm text-muted-foreground">{ctx.openUser.designation}</p>
+            <p class="text-sm text-muted-foreground">
+              {ctx.openUser.designation}
+            </p>
           {/if}
         </div>
         <div class="flex mt-1">
@@ -206,7 +208,7 @@
                         </DropdownMenu.Item>
                         <DropdownMenu.Item
                           onclick={() => {
-                            openPrintWindow(leave, leave.leave_type === 1 ? "wl" : "ol");
+                            openPrintWindow(leave, leave.leave_type);
                           }}
                         >
                           <Printer />
