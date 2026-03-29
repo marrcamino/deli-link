@@ -4,7 +4,7 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import type { LeaveTypeKey } from "$lib/constants";
+  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
   import { getUserPref, setUserPref } from "$lib/helper";
   import {
     formatDate,
@@ -46,14 +46,14 @@
   }
 
   function printLeave() {
-    // if (page.params.id === "empty") {
-    //   window.print();
-    //   return;
-    // }
-    // if (!sigAoValue.trim() || !sigHeadValue.trim()) {
-    //   waitingAfterSignatories = true;
-    //   dialogOpen = true;
-    // } else window.print();
+    if (page.params.id === "empty") {
+      window.print();
+      return;
+    }
+    if (!sigAoValue.trim() || !sigHeadValue.trim()) {
+      waitingAfterSignatories = true;
+      dialogOpen = true;
+    } else window.print();
   }
 
   function handleKeydown(event: KeyboardEvent) {
@@ -101,7 +101,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<div class="w-full sticky top-0 print:hidden bg-background border-b">
+<div class="w-full sticky top-0 print:hidden bg-background border-b z-1">
   <div class="w-a4 place-self-center py-2 flex gap-2 justify-end">
     <Dialog.Root
       bind:open={dialogOpen}
@@ -185,11 +185,11 @@
   {/if}
 
   <div class="flex flex-col items-center text-center mb-6 mt-8">
-    <div class="flex gap-4">
+    <div class="flex gap-4 relative">
       <img
         src="/provincial-logo.png"
         alt="Provincial Logo"
-        class="h-20 w-20 mb-2"
+        class="size-15 mb-2 absolute -left-20 top-3"
         onload={getSignatories}
       />
       <div class="text-[10px] uppercase leading-tight">
@@ -203,7 +203,9 @@
       </div>
     </div>
     <h1 class="mt-4 text-xl font-bold uppercase tracking-wide">
-      Application for {printTypeIsWellness ? "Wellness" : "Office"} Leave
+      Application for {LEAVE_TYPE_MAP[
+        printTypeIsWellness ? "WELLNESS" : "PERSONAL"
+      ]}
     </h1>
     <p class="text-sm italic">(for JOCOS)</p>
   </div>

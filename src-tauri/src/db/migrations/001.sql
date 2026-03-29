@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS leave_application (
   leave_type TEXT DEFAULT 'WELLNESS',
   is_approved INTEGER NOT NULL DEFAULT 0,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT hc_leave_types CHECK (leave_type IN ('WELLNESS', 'OFFICE')),
+  CONSTRAINT hc_leave_types CHECK (leave_type IN ('PERSONAL', 'WELLNESS')),
   FOREIGN KEY (user_fk) REFERENCES user (user_pk) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS leave_date (

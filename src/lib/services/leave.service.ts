@@ -42,15 +42,15 @@ export async function getLeaveApplications(
   if (options?.approveStatus === 'approve_only') conditions.push('is_approved = 1');
   if (options?.approveStatus === 'not_approve_only') conditions.push('is_approved = 0');
 
-  if (options?.leaveType === 'WELLNESS') conditions.push('leave_type = 1');
-  if (options?.leaveType === 'OFFICE') conditions.push('leave_type = 2');
+  if (options?.leaveType === 'WELLNESS') conditions.push("leave_type = 'WELLNESS'");
+  if (options?.leaveType === 'PERSONAL') conditions.push("leave_type = 'PERSONAL'");
 
   const leaveQuery = `
     SELECT *
     FROM leave_application
     WHERE ${conditions.join(' AND ')}
     ORDER BY created_at ASC
-  `;
+  `;  
 
   const leaves = await db.select<LeaveApplication[]>(leaveQuery, params);
 

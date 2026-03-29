@@ -22,7 +22,7 @@
   import { setLeaveContext } from "./context.svelte";
   import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
-  
+  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
 
   const ctx = setLeaveContext();
 
@@ -98,14 +98,14 @@
           </DropdownMenu.Trigger>
           <DropdownMenu.Content>
             <DropdownMenu.Group>
-              <DropdownMenu.Item onclick={() => openPrintWindow()}>
-                Wellness Leave
-              </DropdownMenu.Item>
-              <DropdownMenu.Item
-                onclick={() => openPrintWindow(undefined, "ol")}
-              >
-                Office Leave
-              </DropdownMenu.Item>
+              {#each Object.entries(LEAVE_TYPE_MAP) as [key, value]}
+                <DropdownMenu.Item
+                  onclick={() =>
+                    openPrintWindow(undefined, key as LeaveTypeKey)}
+                >
+                  {value}
+                </DropdownMenu.Item>
+              {/each}
             </DropdownMenu.Group>
           </DropdownMenu.Content>
         </DropdownMenu.Root>

@@ -66,7 +66,7 @@ class LeaveContext {
 
     return {
       wellness: 5 - getTotalDays(getApprovedLeave("WELLNESS")),
-      office: 2 - getTotalDays(getApprovedLeave("OFFICE"))
+      office: 2 - getTotalDays(getApprovedLeave("PERSONAL"))
     }
   }
 
