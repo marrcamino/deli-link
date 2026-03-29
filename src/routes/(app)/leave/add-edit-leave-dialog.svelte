@@ -22,6 +22,7 @@
   import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import { getLeaveContext } from "./context.svelte";
+  import { slide } from "svelte/transition";
 
   interface DbResponse {
     success: boolean;
@@ -35,6 +36,10 @@
   let currentLeave: LeaveApplication | null = $state(null);
   let leaveType = $state<LeaveTypeKey>("WELLNESS");
   let isApprove = $state(false);
+
+  const slideHorizontally = (node: HTMLElement) => {
+    return slide(node, { axis: "x" });
+  };
 
   const ctx = getLeaveContext();
 
@@ -58,8 +63,6 @@
         created_at,
       };
 
-      console.log(leaveApplicationToInsert);
-      
       const res: DbResponse = await invoke("save_leave_application", {
         leave: leaveApplicationToInsert,
         dates: inclusiveDates
@@ -70,6 +73,7 @@
       toast.success(res.message);
       ctx.add(res.data);
       currentLeave = res.data;
+      ctx.openLeave = res.data;
     } catch (e) {
       console.error(e);
       toast.error("There was an error while saving", {
@@ -149,8 +153,27 @@
   <Dialog.Content class="sm:max-w-90">
     <form class="grid gap-4" {onsubmit} autocomplete="off">
       <Dialog.Header>
-        <Dialog.Title>
-          {ctx.openLeave ? "Update" : "Add New"} Leave Application
+        <Dialog.Title class="*:block flex">
+          <!-- {ctx.openLeave ? "Update" : "Add New"} Leave Application -->
+
+          {#if ctx.openLeave}
+            <span transition:slideHorizontally>Up</span>
+          {:else}
+            <span transition:slideHorizontally>Ad</span>
+          {/if}
+          <span>d</span>
+          {#if ctx.openLeave}
+            <span transition:slideHorizontally>at</span>
+          {:else}
+            <span transition:slideHorizontally class="pl-1">N</span>
+          {/if}
+
+          <span>e</span>
+          {#if !ctx.openLeave}
+            <span transition:slideHorizontally>w</span>
+          {/if}
+
+          <span class="pl-1">Leave Application</span>
         </Dialog.Title>
         <Dialog.Description>
           Fields marked with asterisk <Asterisk withParentheses /> are required.
@@ -228,7 +251,18 @@
         >
           Close
         </Dialog.Close>
-        <Button type="submit">{ctx.openLeave ? "Update" : "Add"} Leave</Button>
+        <Button type="submit" class="*:block gap-0">
+          {#if ctx.openLeave}
+            <span transition:slideHorizontally>Up</span>
+          {:else}
+            <span transition:slideHorizontally>Ad</span>
+          {/if}
+          <span>d</span>
+          {#if ctx.openLeave}
+            <span transition:slideHorizontally>ate</span>
+          {/if}
+          <span class="pl-1">Leave</span>
+        </Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

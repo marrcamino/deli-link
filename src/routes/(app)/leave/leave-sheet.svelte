@@ -35,9 +35,10 @@
   import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
   import { getLeaveContext } from "./context.svelte";
 
+  const ctx = getLeaveContext();
+
   let openComplete = $state(false);
   let defaultInTransDuration = $derived(openComplete ? 300 : 0);
-  const ctx = getLeaveContext();
   let alterDialogContinueButton: HTMLButtonElement = $state(null!);
 
   async function deleteLeave() {
@@ -143,11 +144,12 @@
           <div class="text-xs self-end">
             <div class="leading-4">
               <span>Wellness Leave bal.</span>
-              <span class="text-muted-foreground">0/5</span>
+              <span class="text-muted-foreground">{ctx.wellnessLeaveBal}/5</span
+              >
             </div>
             <div class="leading-4">
-              <span>Office Leave bal.</span>
-              <span class="text-muted-foreground">0/2</span>
+              <span>Montly/Personal Leave bal.</span>
+              <span class="text-muted-foreground">{ctx.officeLeaveBal}/2</span>
             </div>
           </div>
           <div class="ml-auto flex gap-2">
