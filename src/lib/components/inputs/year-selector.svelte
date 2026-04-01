@@ -8,6 +8,7 @@
     size?: "sm" | "default";
     yearsBack?: number; // Default for leave history
     yearsForward?: number; // Added buffer for future planning
+    onOpenChange?: (open: boolean) => void;
   }
 
   let {
@@ -15,6 +16,7 @@
     placeholder = "Select year",
     yearsBack = 100,
     yearsForward = 5,
+    onOpenChange,
     ...restProps
   }: Props &
     Omit<SelectPrimitive.TriggerProps, "children" | "child"> = $props();
@@ -37,7 +39,17 @@
   );
 </script>
 
-<Select.Root type="single" bind:value scrollAlignment="center">
+<Select.Root
+  type="single"
+  bind:value
+  scrollAlignment="center"
+  onOpenChange={(open) => {
+    if (open) onOpenChange?.(true);
+  }}
+  onOpenChangeComplete={(open) => {
+    if (!open) onOpenChange?.(false);
+  }}
+>
   <Select.Trigger {...restProps}>
     {triggerContent}
   </Select.Trigger>
