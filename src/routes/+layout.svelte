@@ -9,4 +9,9 @@
 {@render children()}
 
 <ModeWatcher defaultMode={"system"} />
-<Toaster richColors position="top-left" closeButton class="z-auto"/>
+<Toaster
+  richColors
+  position="top-left"
+  closeButton
+  class="z-auto"
+/>

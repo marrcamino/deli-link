@@ -52,7 +52,7 @@ class LeaveContext {
   }
 
   private getLeaveBalance() {
-    if (!this.listOfLeave.length) return { wellness: 0, office: 0 }
+    if (!this.listOfLeave.length) return { wellness: 5, office: 2 }
 
     const getApprovedLeave = (leaveType: LeaveTypeKey) => {
       if (!this.listOfLeave.length) return []
