@@ -1,6 +1,7 @@
-import { CalendarDays, CalendarSearch, House, Users, FileCheck, FlaskConical } from "@lucide/svelte/icons";
+import { CalendarDays, CalendarSearch, House, Users, FileCheck, FlaskConical, FileClock } from "@lucide/svelte/icons";
 
 export const ROUTES = [
+  // MAIN
   {
     name: "Main",
     routes: [
@@ -17,6 +18,7 @@ export const ROUTES = [
     ]
   },
 
+  // APPLICATIONS
   {
     name: "Applications",
     routes: [
@@ -24,9 +26,16 @@ export const ROUTES = [
         title: "Leave Application",
         url: "/leave",
         icon: FileCheck,
+      },
+      {
+        title: "Pass Slip",
+        url: "/pass-slip",
+        icon: FileClock,
       }
     ]
   },
+
+  // ATTENDANCE
   {
     name: "Attendance",
     routes: [

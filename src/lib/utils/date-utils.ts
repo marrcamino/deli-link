@@ -38,6 +38,51 @@ export function formatDate(
   return new Intl.DateTimeFormat("en-US", formatOptions).format(date);
 }
 
+/**
+ * Converts a 24-hour time string into Philippine 12-hour format (AM/PM).
+ *
+ * @param time - Time string in "HH:mm" or "HH:mm:ss" format
+ * @param includeSeconds - Whether to include seconds in the output (default: false)
+ * @returns Formatted time string in 12-hour format (e.g., "08:16 AM" or "08:16:38 AM")
+ *
+ * @example
+ * formatTime("08:16:38")
+ * // "08:16 AM"
+ *
+ * @example
+ * formatTime("13:05", true)
+ * // "01:05:00 PM"
+ */
+export function formatTime(
+  time: string,
+  includeSeconds: boolean = false
+): string {
+  const [rawHours, rawMinutes, rawSeconds] = time.split(':');
+
+  const hours = Number(rawHours);
+  const minutes = Number(rawMinutes);
+  const seconds = Number(rawSeconds ?? 0);
+
+  if (
+    Number.isNaN(hours) ||
+    Number.isNaN(minutes) ||
+    (includeSeconds && Number.isNaN(seconds))
+  ) {
+    throw new Error('Invalid time string format');
+  }
+
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const normalizedHours = hours % 12 || 12;
+
+  const hh = String(normalizedHours).padStart(2, '0');
+  const mm = String(minutes).padStart(2, '0');
+  const ss = String(seconds).padStart(2, '0');
+
+  return includeSeconds
+    ? `${hh}:${mm}:${ss} ${period}`
+    : `${hh}:${mm} ${period}`;
+}
+
 
 /** Date helper for `@internationalized/date` */
 export class IntlDateHelper {

@@ -7,8 +7,9 @@
   } from "$lib/components/ui/data-table/index.js";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import * as Table from "$lib/components/ui/table/index.js";
+  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
   import { openPrintWindow } from "$lib/utils";
-  import { ChevronDown, Printer } from "@lucide/svelte";
+  import { ChevronDown } from "@lucide/svelte";
   import {
     type ColumnFiltersState,
     getCoreRowModel,
@@ -22,7 +23,6 @@
   import { setLeaveContext } from "./context.svelte";
   import LeaveSheet from "./leave-sheet.svelte";
   import { columns } from "./tbl-schema";
-  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
 
   const ctx = setLeaveContext();
 

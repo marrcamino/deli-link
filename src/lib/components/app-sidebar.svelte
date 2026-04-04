@@ -32,7 +32,7 @@
       <Sidebar.MenuItem class="flex items-center font-semibold py-1.5">
         <Sidebar.Trigger class="ml-0.5 focus-visible:ring-2 text-primary" />
         <div
-          class="text-nowrap text-sm group-data-[collapsible=icon]:opacity-0 transition-opacity ease-out"
+          class="text-nowrap text-sm leading-4 group-data-[collapsible=icon]:opacity-0 transition-opacity ease-out"
         >
           Deli-Link
         </div>
@@ -43,7 +43,7 @@
     {#each ROUTES as group}
       <Sidebar.Group>
         {#if group.name}
-          <Sidebar.GroupLabel class="h-6">{group.name}</Sidebar.GroupLabel>
+          <Sidebar.GroupLabel class="h-6 pointer-events-none">{group.name}</Sidebar.GroupLabel>
         {/if}
         <Sidebar.Menu>
           {#each group.routes as route (route.title)}
@@ -55,7 +55,7 @@
               >
                 {#snippet child({ props })}
                   <a href={route.url} {...props}>
-                    <route.icon />
+                    <route.icon/>
                     {route.title}
                   </a>
                 {/snippet}
