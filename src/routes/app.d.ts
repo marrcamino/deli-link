@@ -1,5 +1,5 @@
 import type { UserPrefKeys } from "$lib/types"
-import type { LeaveTypeKey } from "$lib/constants"
+import type { LeaveTypeKey, PassSlipTypeKey } from "$lib/constants"
 
 declare global {
   // namespace App {
@@ -51,6 +51,21 @@ declare global {
     signatory_pk: number
     name: string
     position: string
+    /** ex. 1999-01-01 06:30:55 */
+    created_at: string;
+  }
+
+  interface PassSlip {
+    pass_slip_pk: number;
+    start_date: string;
+    end_date: string;
+    start_time: string;
+    end_time: string;
+    slip_type: PassSlipTypeKey;
+    signatory_fk: Signatory['signatory_pk']
+    is_approved: Bit;
+    /** ex. 1999-01-01 */
+    filed_at: string;
     /** ex. 1999-01-01 06:30:55 */
     created_at: string;
   }
