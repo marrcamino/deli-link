@@ -72,10 +72,13 @@
     >
       <Dialog.Header>
         <Dialog.Title>Add New Pass Slip</Dialog.Title>
+        <Dialog.Description>
+          Fields marked with asterisk <Asterisk withParentheses /> are required.
+        </Dialog.Description>
       </Dialog.Header>
       <div>
         <div class="pb-4 flex">
-          <Label for="date_file" class="grid gap-1 w-48 ml-auto">
+          <Label for="date_file" class="grid gap-1 w-52 ml-auto">
             <div>Date File <Asterisk /></div>
             <DatePicker required name="date_file" closeOnDateSelect />
           </Label>
@@ -93,7 +96,7 @@
             />
           </div>
 
-          <div class="flex flex-col">
+          <div class="flex flex-col w-52">
             <div class="flex gap-2 mx-auto pt-0.5">
               <div>
                 <Label class="mb-1 gap-0.5">
