@@ -46,6 +46,14 @@ declare global {
     pref_key: K
     pref_value: UserPrefKeys[K]
   }
+
+  interface Signatory {
+    signatory_pk: number
+    name: string
+    position: string
+    /** ex. 1999-01-01 06:30:55 */
+    created_at: string;
+  }
 }
 
 export { };
