@@ -34,3 +34,9 @@ CREATE TABLE IF NOT EXISTS leave_date (
   date_value TEXT NOT NULL,
   FOREIGN KEY (leave_fk) REFERENCES leave_application (leave_pk) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS signatory (
+  signatory_pk INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  position TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
