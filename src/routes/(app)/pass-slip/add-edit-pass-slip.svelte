@@ -9,12 +9,13 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import Label from "$lib/components/ui/label/label.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
-  import { formatTime, prettifyDates } from "$lib/utils";
+  import { formatTime, IntlDateHelper, prettifyDates } from "$lib/utils";
   import { type DateValue } from "@internationalized/date";
   import { Calendar as CalendarIcon, CircleAlert, Clock } from "@lucide/svelte";
   import { untrack } from "svelte";
   import { quintOut } from "svelte/easing";
   import { fade, slide } from "svelte/transition";
+  import PassSlipTypeSelector from "$lib/components/inputs/pass-slip-type-selector.svelte";
 
   interface Props {
     open?: boolean;
@@ -24,6 +25,7 @@
   let { open = $bindable(), passSlipToEdit, afterSave }: Props = $props();
 
   let values: DateValue[] | undefined = $state([]);
+  let dateFile = $state(IntlDateHelper.today);
   let startTime = $state("08:00");
   let endTime = $state("17:00");
   let endTimeMaxValue = $derived.by(() => {
@@ -77,93 +79,120 @@
         </Dialog.Description>
       </Dialog.Header>
       <div>
-        <div class="pb-4 flex">
-          <Label for="date_file" class="grid gap-1 w-52 ml-auto">
-            <div>Date File <Asterisk /></div>
-            <DatePicker required name="date_file" closeOnDateSelect />
-          </Label>
-        </div>
-
         <div class="flex gap-2">
-          <div class="w-max mt-auto">
-            <div class="mb-1 font-semibold leading-4">
-              Select multiple dates <Asterisk />
+          <div>
+            <div class="pb-4 flex w-full">
+              <Label for="pass_slip_type" class="grid gap-1 w-full">
+                <div>Pass Slip Type <Asterisk /></div>
+                <PassSlipTypeSelector
+                  required
+                  name="pass_slip_type"
+                  class="w-full"
+                />
+              </Label>
             </div>
-            <Calendar
-              type="multiple"
-              bind:value={values}
-              class="border rounded-md"
-            />
+            <div class="mt-2">
+              <div class="w-max mt-auto">
+                <div class="mb-1 font-semibold leading-4">
+                  Select multiple dates <Asterisk />
+                </div>
+                <Calendar
+                  type="multiple"
+                  bind:value={values}
+                  class="border rounded-md"
+                />
+              </div>
+            </div>
           </div>
 
           <div class="flex flex-col w-52">
-            <div class="flex gap-2 mx-auto pt-0.5">
-              <div>
-                <Label class="mb-1 gap-0.5">
-                  Start Time <Asterisk />
-                </Label>
-                <Input
+            <div class="pb-4 flex">
+              <Label for="date_file" class="grid gap-1 w-52 ml-auto">
+                <div>Date File <Asterisk /></div>
+                <DatePicker
                   required
-                  type="time"
-                  step="1800"
-                  bind:value={startTime}
-                  min="08:00"
-                  max="17:00"
-                  class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                  name="date_file"
+                  closeOnDateSelect
+                  bind:value={dateFile}
                 />
-              </div>
-
-              <div>
-                <Label class="mb-1 gap-0.5">
-                  End Time<Asterisk />
-                </Label>
-                <Input
-                  required
-                  type="time"
-                  step="1800"
-                  bind:value={endTime}
-                  min={endTimeMaxValue}
-                  max="17:00"
-                  class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
-                />
-              </div>
+              </Label>
             </div>
 
-            <!-- BUTTONS -->
-            <div class="mt-auto grid gap-1">
-              <Button
-                size="sm"
-                variant="outline"
-                onclick={() => {
-                  startTime = "08:00";
-                  endTime = "17:00";
-                }}>Whole Day</Button
-              >
-              <Button
-                size="sm"
-                variant="outline"
-                onclick={() => {
-                  startTime = "08:00";
-                  endTime = "12:00";
-                }}>Morning</Button
-              >
-              <Button
-                size="sm"
-                variant="outline"
-                onclick={() => {
-                  startTime = "13:00";
-                  endTime = "17:00";
-                }}>Afternoon</Button
-              >
-              <Button
-                size="sm"
-                variant="secondary"
-                onclick={() => {
-                  values = [];
-                  startTime = "08:00";
-                  endTime = "17:00";
-                }}>Reset Values</Button
-              >
+            <div class="flex flex-col h-full mt-2">
+              <div class="flex gap-2 mx-auto pt-0.5">
+                <!-- START TIME -->
+                <div>
+                  <Label class="mb-1 gap-0.5" for="start_time">
+                    Start Time <Asterisk />
+                  </Label>
+                  <Input
+                    id="start_time"
+                    name="start_time"
+                    required
+                    type="time"
+                    step="1800"
+                    bind:value={startTime}
+                    min="08:00"
+                    max="17:00"
+                    class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                  />
+                </div>
+
+                <!-- END TIME -->
+                <div>
+                  <Label class="mb-1 gap-0.5" for="end_time">
+                    End Time<Asterisk />
+                  </Label>
+                  <Input
+                    id="end_time"
+                    name="end_time"
+                    required
+                    type="time"
+                    step="1800"
+                    bind:value={endTime}
+                    min={endTimeMaxValue}
+                    max="17:00"
+                    class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                  />
+                </div>
+              </div>
+
+              <!-- BUTTONS -->
+              <div class="mt-auto grid gap-1">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onclick={() => {
+                    startTime = "08:00";
+                    endTime = "17:00";
+                  }}>Whole Day</Button
+                >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onclick={() => {
+                    startTime = "08:00";
+                    endTime = "12:00";
+                  }}>Morning Only</Button
+                >
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onclick={() => {
+                    startTime = "13:00";
+                    endTime = "17:00";
+                  }}>Afternoon Only</Button
+                >
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onclick={() => {
+                    values = [];
+                    startTime = "08:00";
+                    endTime = "17:00";
+                  }}>Reset Values</Button
+                >
+              </div>
             </div>
           </div>
         </div>
@@ -216,7 +245,13 @@
 
         <div class="pt-4 space-y-1">
           <Label for="reason" class="gap-1">Reason <Asterisk /></Label>
-          <Textarea id="reason" autoHeight autoTrim required />
+          <Textarea
+            id="reason"
+            autoHeight
+            autoTrim
+            required
+            placeholder="Type reason"
+          />
         </div>
 
         <div class="pt-4">

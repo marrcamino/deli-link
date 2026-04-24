@@ -1,6 +1,6 @@
 <script lang="ts">
   import AddEditPassSlip from "../pass-slip/add-edit-pass-slip.svelte";
-
+  
   let open = $state(false);
 </script>
 
