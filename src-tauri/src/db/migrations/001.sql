@@ -42,15 +42,19 @@ CREATE TABLE IF NOT EXISTS signatory (
 );
 CREATE TABLE IF NOT EXISTS pass_slip (
   pass_slip_pk INTEGER PRIMARY KEY AUTOINCREMENT,
-  start_date TEXT NOT NULL,
-  end_date TEXT NOT NULL,
-  start_time TEXT NOT NULL,
-  end_time TEXT NOT NULL,
+  user_fk INTEGER NOT NULL,
   slip_type TEXT DEFAULT 'OFFICIAL',
   signatory_fk INTEGER NOT NULL,
   is_approved INTEGER DEFAULT 0,
   filed_at TEXT NOT NULL,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT hc_slip_types CHECK (slip_type IN ('PERSONAL', 'OFFICIAL')),
+  FOREIGN KEY (user_fk) REFERENCES user (user_pk) ON DELETE CASCADE,
   FOREIGN KEY (signatory_fk) REFERENCES signatory (signatory_pk) ON DELETE RESTRICT
-)
+);
+CREATE TABLE IF NOT EXISTS pass_slip_date (
+  pass_slip_date_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  pass_slip_fk INTEGER NOT NULL,
+  date_value TEXT NOT NULL,
+  FOREIGN KEY (pass_slip_fk) REFERENCES pass_slip (pass_slip_pk) ON DELETE CASCADE
+);

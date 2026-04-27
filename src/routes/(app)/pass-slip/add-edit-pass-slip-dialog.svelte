@@ -9,22 +9,40 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import Label from "$lib/components/ui/label/label.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
-  import { formatTime, IntlDateHelper, prettifyDates } from "$lib/utils";
+  import {
+    formatTime,
+    IntlDateHelper,
+    NativeDateHelper,
+    prettifyDates,
+  } from "$lib/utils";
   import { type DateValue } from "@internationalized/date";
   import { Calendar as CalendarIcon, CircleAlert, Clock } from "@lucide/svelte";
   import { untrack } from "svelte";
   import { quintOut } from "svelte/easing";
   import { fade, slide } from "svelte/transition";
   import PassSlipTypeSelector from "$lib/components/inputs/pass-slip-type-selector.svelte";
+  import { getPassSlipContext } from "./context.svelte";
+  import { invoke } from "@tauri-apps/api/core";
+  import type { PassSlipTypeKey } from "$lib/constants";
+  import { toast } from "svelte-sonner";
 
   interface Props {
-    open?: boolean;
     passSlipToEdit?: PassSlip;
     afterSave?: (passSlip: PassSlip) => void;
   }
-  let { open = $bindable(), passSlipToEdit, afterSave }: Props = $props();
+  interface DbResponse {
+    success: boolean;
+    message: string;
+    data: PassSlip & {
+      dates: PassSlipDate[];
+    };
+  }
 
-  let values: DateValue[] | undefined = $state([]);
+  let { passSlipToEdit, afterSave }: Props = $props();
+
+  const ctx = getPassSlipContext();
+  let dateValues: DateValue[] | undefined = $state([]);
+  let passSlipTypeValue: PassSlipTypeKey | undefined = $state();
   let dateFile = $state(IntlDateHelper.today);
   let startTime = $state("08:00");
   let endTime = $state("17:00");
@@ -36,27 +54,46 @@
   let noDateSelected = $state(false);
 
   $effect(() => {
-    values;
+    dateValues;
     untrack(() => {
-      if (!values?.length) return;
+      if (!dateValues?.length) return;
       noDateSelected = false;
     });
   });
 
-  async function onsubmit(e: SubmitEvent) {
-    e.preventDefault();
-
-    if (!values?.length) {
-      noDateSelected = true;
-      return;
-    }
-  }
   async function savePassSlip(e: SubmitEvent) {
     e.preventDefault();
 
-    if (!values?.length) {
+    if (!dateValues?.length) {
       noDateSelected = true;
       return;
+    }
+
+    try {
+      const passSlipToInsert: Omit<PassSlip, "pass_slip_pk"> = {
+        created_at: NativeDateHelper.currentTimestamp,
+        end_time: endTime,
+        filed_at: dateFile.toString(),
+        is_approved: 0,
+        signatory_fk: Number(signatoryValue),
+        slip_type: passSlipTypeValue!,
+        start_time: startTime,
+        user_fk: ctx.openUser!.user_pk,
+      };
+
+      const res: DbResponse = await invoke("save_pass_slip", {
+        passSlip: passSlipToInsert,
+        dates: dateValues
+          .map((d) => d.toString())
+          .map((d) => ({ date_value: d })),
+      });
+
+      toast.success(res.message);
+    } catch (error) {
+      console.error(error);
+      toast.error("There was an error while saving pass slip", {
+        description: "Please try again",
+      });
     }
   }
 
@@ -65,7 +102,7 @@
   }
 </script>
 
-<Dialog.Root bind:open>
+<Dialog.Root bind:open={ctx.addEditDialogState}>
   <Dialog.Content class=" sm:w-max">
     <form
       autocomplete="off"
@@ -86,6 +123,7 @@
                 <div>Pass Slip Type <Asterisk /></div>
                 <PassSlipTypeSelector
                   required
+                  bind:value={passSlipTypeValue}
                   name="pass_slip_type"
                   class="w-full"
                 />
@@ -98,7 +136,7 @@
                 </div>
                 <Calendar
                   type="multiple"
-                  bind:value={values}
+                  bind:value={dateValues}
                   class="border rounded-md"
                 />
               </div>
@@ -187,7 +225,7 @@
                   size="sm"
                   variant="secondary"
                   onclick={() => {
-                    values = [];
+                    dateValues = [];
                     startTime = "08:00";
                     endTime = "17:00";
                   }}>Reset Values</Button
@@ -215,7 +253,7 @@
           </div>
         {/if}
 
-        {#if values?.length && startTime && endTime}
+        {#if dateValues?.length && startTime && endTime}
           <div
             in:slide={{ easing: quintOut, delay: noDateSelected ? 200 : 0 }}
             out:slide={{ delay: 200, easing: quintOut }}
@@ -230,9 +268,11 @@
                 <CalendarIcon
                   class="text-muted-foreground size-3.5 translate-y-px"
                 />
-                <span class="ml-1">{prettifyDates(values)}</span>
+                <span class="ml-1">{prettifyDates(dateValues)}</span>
                 <span class="rounded-sm bg-accent px-1 py-0.5 text-xs ml-1"
-                  >{values?.length}{values?.length === 1 ? "dy" : "dys"}</span
+                  >{dateValues?.length}{dateValues?.length === 1
+                    ? "dy"
+                    : "dys"}</span
                 >
                 <Clock
                   class="text-muted-foreground size-3.5 ml-4 mr-1 translate-y-px"
@@ -269,7 +309,7 @@
         >
           Cancel
         </Dialog.Close>
-        <Button type="submit">Save changes</Button>
+        <Button type="submit">Save Pass Slip</Button>
       </Dialog.Footer>
     </form>
   </Dialog.Content>

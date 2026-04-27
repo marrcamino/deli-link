@@ -18,7 +18,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::logs::save_logs,
             commands::leave::save_leave_application,
-            commands::leave::update_leave_application
+            commands::leave::update_leave_application,
+            commands::pass_slip::save_pass_slip
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

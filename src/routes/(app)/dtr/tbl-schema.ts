@@ -1,4 +1,4 @@
-import { tsh } from "$lib/helper";
+import { tableRowNumber } from "$lib/helper";
 import { formatFullName } from "$lib/utils";
 import type { ColumnDef } from "@tanstack/table-core";
 import TblActions from "./tbl-actions.svelte";
@@ -8,7 +8,7 @@ export const columns: ColumnDef<User, unknown>[] = [
   {
     id: "number",
     header: "#",
-    cell: (cell) => tsh(cell).rowNum
+    cell: (cell) => tableRowNumber(cell).rowNum
   },
   {
     id: "fullname",
