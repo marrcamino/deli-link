@@ -1,11 +1,15 @@
-import { getUsers } from "$lib/services";
-import { getContext, setContext } from "svelte";
+import { getUsers, getPassSlipsWithDates } from "$lib/services";
+import { getContext, setContext, untrack } from "svelte";
 
 const CONTEXT_KEY = Symbol("pass-slip-context");
 
+type PassSlipWithDates = PassSlip & {
+  dates: string[];
+};
 
 class PassSlipContext {
   users: User[] = $state([])
+  passSlips: PassSlipWithDates[] = $state([])
 
   // When editing
   openUser: User | null = $state(null)
@@ -19,6 +23,16 @@ class PassSlipContext {
   selectedYear = $state(new Date().getFullYear().toString())
   constructor() {
     getUsers().then(u => this.users = u)
+
+
+    $effect(() => {
+      this.openUser;
+
+      untrack(() => {
+        if (!this.openUser) return
+        getPassSlipsWithDates(this.openUser.user_pk).then(p => this.passSlips = p)
+      })
+    })
   }
 }
 

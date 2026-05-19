@@ -9,6 +9,7 @@
     size?: "sm" | "default";
     required?: boolean;
     name?: string;
+    onValueChange?: (value: PassSlipTypeKey | undefined) => void;
   }
 
   let {
@@ -16,6 +17,7 @@
     placeholder = "Select Pass Slip Type",
     required,
     name,
+    onValueChange,
     ...restProps
   }: Props &
     Omit<
@@ -30,7 +32,15 @@
   );
 </script>
 
-<Select.Root type="single" bind:value {required} {name}>
+<Select.Root
+  type="single"
+  bind:value
+  {required}
+  {name}
+  onValueChange={() => {
+    onValueChange?.(value);
+  }}
+>
   <Select.Trigger {...restProps}>
     {triggerContent}
   </Select.Trigger>

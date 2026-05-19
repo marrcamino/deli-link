@@ -25,6 +25,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import type { PassSlipTypeKey } from "$lib/constants";
   import { toast } from "svelte-sonner";
+  import * as Alert from "$lib/components/ui/alert/index.js";
 
   interface Props {
     passSlipToEdit?: PassSlip;
@@ -44,22 +45,38 @@
   let dateValues: DateValue[] | undefined = $state([]);
   let passSlipTypeValue: PassSlipTypeKey | undefined = $state();
   let dateFile = $state(IntlDateHelper.today);
+
   let startTime = $state("08:00");
   let endTime = $state("17:00");
-  let endTimeMaxValue = $derived.by(() => {
-    if (startTime === "12:00") return "13:00";
-    return "17:00";
-  });
+  let endTimeMinValue = $state("09:00");
+  let endTimeMaxValue = $state("17:00");
+
   let signatoryValue = $state("");
   let noDateSelected = $state(false);
 
+  let isTimePresetIsDisabled = $derived(passSlipTypeValue === "PERSONAL");
+  let endTimeIsInvalid = $state(false);
+
   $effect(() => {
-    dateValues;
+    passSlipTypeValue;
+
     untrack(() => {
-      if (!dateValues?.length) return;
-      noDateSelected = false;
+      if (!passSlipTypeValue) {
+        endTimeMinValue = "17:00";
+        return;
+      }
     });
   });
+
+  function addHours(time: string, hoursToAdd: number = 1): string {
+    const [h, m] = time.split(":").map(Number);
+
+    const newHour = (h + hoursToAdd) % 24;
+
+    return `${newHour.toString().padStart(2, "0")}:${m
+      .toString()
+      .padStart(2, "0")}`;
+  }
 
   async function savePassSlip(e: SubmitEvent) {
     e.preventDefault();
@@ -100,10 +117,30 @@
   async function updatePassSlip(e: SubmitEvent) {
     e.preventDefault();
   }
+
+  // Show/hide selected date and time
+  $effect(() => {
+    dateValues;
+    untrack(() => {
+      if (!dateValues?.length) return;
+      noDateSelected = false;
+    });
+  });
+
+  // Set end time min value
+  $effect(() => {
+    startTime;
+
+    untrack(() => {
+      if (!startTime.trim()) return;
+      endTimeMinValue = addHours(startTime);
+      endTimeMaxValue = addHours(startTime, 2);
+    });
+  });
 </script>
 
 <Dialog.Root bind:open={ctx.addEditDialogState}>
-  <Dialog.Content class=" sm:w-max">
+  <Dialog.Content class="sm:w-max">
     <form
       autocomplete="off"
       onsubmit={passSlipToEdit ? updatePassSlip : savePassSlip}
@@ -115,6 +152,7 @@
           Fields marked with asterisk <Asterisk withParentheses /> are required.
         </Dialog.Description>
       </Dialog.Header>
+
       <div>
         <div class="flex gap-2">
           <div>
@@ -126,6 +164,10 @@
                   bind:value={passSlipTypeValue}
                   name="pass_slip_type"
                   class="w-full"
+                  onValueChange={(value) => {
+                    if (value !== "PERSONAL" || !dateValues) return;
+                    if (dateValues.length > 1) dateValues = [dateValues[0]];
+                  }}
                 />
               </Label>
             </div>
@@ -136,6 +178,7 @@
                 </div>
                 <Calendar
                   type="multiple"
+                  maxDays={passSlipTypeValue === "PERSONAL" ? 1 : undefined}
                   bind:value={dateValues}
                   class="border rounded-md"
                 />
@@ -157,41 +200,56 @@
             </div>
 
             <div class="flex flex-col h-full mt-2">
-              <div class="flex gap-2 mx-auto pt-0.5">
-                <!-- START TIME -->
-                <div>
-                  <Label class="mb-1 gap-0.5" for="start_time">
-                    Start Time <Asterisk />
-                  </Label>
-                  <Input
-                    id="start_time"
-                    name="start_time"
-                    required
-                    type="time"
-                    step="1800"
-                    bind:value={startTime}
-                    min="08:00"
-                    max="17:00"
-                    class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
-                  />
+              <div class="mx-auto pt-0.5">
+                <div class="flex gap-2">
+                  <!-- START TIME -->
+                  <div>
+                    <Label class="mb-1 gap-0.5" for="start_time">
+                      Start Time <Asterisk />
+                    </Label>
+                    <Input
+                      id="start_time"
+                      name="start_time"
+                      required
+                      type="time"
+                      step="3600"
+                      bind:value={startTime}
+                      min="08:00"
+                      max="17:00"
+                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                    />
+                  </div>
+
+                  <!-- END TIME -->
+                  <div>
+                    <Label class="mb-1 gap-0.5" for="end_time">
+                      End Time<Asterisk />
+                    </Label>
+                    <Input
+                      id="end_time"
+                      name="end_time"
+                      aria-invalid={endTimeIsInvalid}
+                      required
+                      type="time"
+                      step="1800"
+                      bind:value={endTime}
+                      min={endTimeMinValue}
+                      max={endTimeMaxValue}
+                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                    />
+                  </div>
                 </div>
 
-                <!-- END TIME -->
                 <div>
-                  <Label class="mb-1 gap-0.5" for="end_time">
-                    End Time<Asterisk />
-                  </Label>
-                  <Input
-                    id="end_time"
-                    name="end_time"
-                    required
-                    type="time"
-                    step="1800"
-                    bind:value={endTime}
-                    min={endTimeMaxValue}
-                    max="17:00"
-                    class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
-                  />
+                  <div>
+                    <p class="text-destructive text-xs flex gap-1 pt-0.5">
+                      <CircleAlert class="size-3.5 flex-none mt-0.5" />
+                      <span>
+                        Please select a time on the hour &lpar;like 8:00 or
+                        9:00&rpar;.
+                      </span>
+                    </p>
+                  </div>
                 </div>
               </div>
 
@@ -200,6 +258,7 @@
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={isTimePresetIsDisabled}
                   onclick={() => {
                     startTime = "08:00";
                     endTime = "17:00";
@@ -208,6 +267,7 @@
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={isTimePresetIsDisabled}
                   onclick={() => {
                     startTime = "08:00";
                     endTime = "12:00";
@@ -216,6 +276,7 @@
                 <Button
                   size="sm"
                   variant="outline"
+                  disabled={isTimePresetIsDisabled}
                   onclick={() => {
                     startTime = "13:00";
                     endTime = "17:00";
@@ -245,9 +306,10 @@
               out:fade={{ duration: 200 }}
             >
               <p
-                class="text-destructive text-sm flex gap-1 items-center leading-7"
+                class="text-destructive text-xs flex gap-1 items-center leading-7"
               >
-                <CircleAlert class="size-3.5" /> Please select dates above
+                <CircleAlert class="size-3.5" />
+                Please select date{passSlipTypeValue === "OFFICIAL" ? "s" : ""} above
               </p>
             </div>
           </div>
@@ -269,11 +331,9 @@
                   class="text-muted-foreground size-3.5 translate-y-px"
                 />
                 <span class="ml-1">{prettifyDates(dateValues)}</span>
-                <span class="rounded-sm bg-accent px-1 py-0.5 text-xs ml-1"
-                  >{dateValues?.length}{dateValues?.length === 1
-                    ? "dy"
-                    : "dys"}</span
-                >
+                <span class="rounded-sm bg-accent px-1 py-0.5 text-xs ml-1">
+                  {dateValues?.length}{dateValues?.length === 1 ? "d" : "dys"}
+                </span>
                 <Clock
                   class="text-muted-foreground size-3.5 ml-4 mr-1 translate-y-px"
                 />
