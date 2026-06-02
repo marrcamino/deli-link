@@ -317,13 +317,13 @@
                 </td>
                 <td class="border-r border-black p-0.5">
                   {data.allApproveLeaveDates
-                    ? data.allApproveLeaveDates.length
+                    ? data.leaveLeft
                     : ""}
                 </td>
                 <td class="p-0.5">
                   {#if data.allApproveLeaveDates}
                     {printTypeIsWellness
-                      ? 5
+                      ? 5 -data.leaveLeft
                       : 2 - data.allApproveLeaveDates.length}
                   {/if}
                 </td>

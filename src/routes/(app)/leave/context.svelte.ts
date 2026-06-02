@@ -48,7 +48,7 @@ class LeaveContext {
   }
 
   private async loadLeaveApplications(id: number) {
-    this.listOfLeave = await this.getLeaveApplications(id);
+    this.listOfLeave = (await this.getLeaveApplications(id)).reverse();
   }
 
   private getLeaveBalance() {
@@ -70,8 +70,8 @@ class LeaveContext {
     }
   }
 
-  async getLeaveApplications(id: number, approveStatus?: 'approve_only' | 'not_approve_only') {
-    return await getLeaveApplications(id, { year: this.selectedYear.toString(), approveStatus })
+  async getLeaveApplications(id: number, approveStatus?: 'approved' | 'not_approved') {
+    return await getLeaveApplications(id, { year: this.selectedYear.toString(), approvalStatus: approveStatus })
   }
 
   add(newLeave: LeaveApplicationWithDate) {

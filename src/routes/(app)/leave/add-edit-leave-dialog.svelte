@@ -35,7 +35,7 @@
   let placeholder: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
   let leaveType = $state<LeaveTypeKey>("WELLNESS");
-  let isApprove = $state(false);
+  let isApprove = $state(true);
 
   const slideHorizontally = (node: HTMLElement) => {
     return slide(node, { axis: "x" });
@@ -147,7 +147,7 @@
       inclusiveDates = [];
       currentLeave = null;
       leaveType = "WELLNESS";
-      isApprove = false;
+      isApprove = true;
     }
   }}
 >

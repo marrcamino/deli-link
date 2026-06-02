@@ -195,9 +195,7 @@
               size="sm"
               class="w-19"
               bind:value={ctx.selectedYear}
-              onOpenChange={(open) => {
-                yearSelectorIsOpen = open;
-              }}
+              onOpenChange={(open) => (yearSelectorIsOpen = open)}
             />
             <Button size="sm" onclick={() => (ctx.addEditDialogState = true)}>
               Add Leave
