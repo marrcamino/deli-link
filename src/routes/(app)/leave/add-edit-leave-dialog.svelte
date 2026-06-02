@@ -100,7 +100,7 @@
         newDates: inclusiveDates.map((d) => d.toString()),
       });
 
-      toast.success(res.message);
+      toast.success(res.message, {duration: Infinity});
       ctx.update(res.data);
     } catch (error) {
       console.error(error);
@@ -127,6 +127,7 @@
     });
   });
 
+  // Set placeholder when datefile changes
   $effect(() => {
     dateFile;
 
