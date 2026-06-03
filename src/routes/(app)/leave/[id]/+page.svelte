@@ -290,9 +290,9 @@
           </h2>
           <p class="text-[10px] mb-2 font-semibold">
             As of
-            <span class="group-data-empty:hidden">{todayDateFormatted}</span>
+            <span class="group-data-empty:hidden">{formatDate(data.userLeave?.date_file, 'long')}</span>
             <span
-              class="hidden border-b border-black w-45 group-data-empty:inline-block"
+              class="hidden border-b border-black w-30 group-data-empty:inline-block"
             ></span>
           </p>
 

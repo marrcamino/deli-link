@@ -5,6 +5,7 @@ import TblActions from "./tbl-actions.svelte";
 import { renderComponent } from "$lib/components/ui/data-table/index.js";
 import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 import TblCellTotalPending from "./tbl-cell-total-pending.svelte";
+import { divWrap } from "$lib/components/display/div-wrapper.svelte";
 
 export const columns: ColumnDef<User, unknown>[] = [
   {
@@ -20,14 +21,14 @@ export const columns: ColumnDef<User, unknown>[] = [
   },
   {
     id: "used-leave",
-    header: "USED LEAVE",
+    header: () => divWrap("USED WL", 'text-center'),
     cell: ({ row }) =>
       renderComponent(TblCellUsedLeave, { user: row.original }),
 
   },
   {
     id: "total-pending",
-    header: "TOTAL PENDING",
+    header: () => divWrap("PENDING", 'text-center'),
     cell: ({ row }) =>
       renderComponent(TblCellTotalPending, { user: row.original }),
   },

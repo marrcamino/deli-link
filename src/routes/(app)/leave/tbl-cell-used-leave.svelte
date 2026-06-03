@@ -1,25 +1,22 @@
 <script lang="ts">
-  import { countTotalLeaveDays } from "$lib/helper";
+  import { getLeaveBalance } from "$lib/services";
   import { onMount, untrack } from "svelte";
   import { getLeaveContext } from "./context.svelte";
-  import type { LeaveApplicationWithDate } from "$lib/types";
-  interface Props {
-    user: User;
-  }
-  let { user }: Props = $props();
+
+  let { user }: { user: User } = $props();
 
   const ctx = getLeaveContext();
 
-  let leaveApplications: LeaveApplicationWithDate[] = $state([]);
+  let leaveBalance = $state(0);
 
   async function setLeaveApplications() {
-    leaveApplications = await ctx.getLeaveApplications(
-      user.user_pk,
-      "approve_only",
-    );
+    leaveBalance = await getLeaveBalance(user.user_pk, {
+      leaveType: "WELLNESS",
+      asOfDate: `${ctx.selectedYear}-12-31`,
+    });
   }
 
-  // When the sheet is close
+  // Refresh this user's leave balance after the sheet closes
   $effect(() => {
     ctx.sheetState;
     untrack(async () => {
@@ -33,16 +30,10 @@
   });
 </script>
 
-<div class="flex items-end">
-  {#if leaveApplications}
-    <span class="text-lg">
-      {#if leaveApplications.length}
-        {countTotalLeaveDays($state.snapshot(leaveApplications))}
-      {:else}
-        0
-      {/if}
-    </span>
-    <span class="text-muted-foreground">/</span>
-    <span class="text-muted-foreground">5</span>
-  {/if}
+<div class="flex items-end place-self-center">
+  <span class="text-lg">
+    {leaveBalance}
+  </span>
+  <span class="text-muted-foreground">/</span>
+  <span class="text-muted-foreground">5</span>
 </div>

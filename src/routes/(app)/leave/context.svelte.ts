@@ -74,6 +74,9 @@ class LeaveContext {
     return await getLeaveApplications(id, { year: this.selectedYear.toString(), approvalStatus: approveStatus })
   }
 
+
+
+
   add(newLeave: LeaveApplicationWithDate) {
     this.listOfLeave = [newLeave, ...this.listOfLeave]
   }

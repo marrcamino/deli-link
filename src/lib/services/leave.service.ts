@@ -88,55 +88,6 @@ export async function getLeaveApplications(
   }));
 }
 
-interface LeaveBalance {
-  leaveType: LeaveTypeKey;
-  allocated: number;
-  used: number;
-  remaining: number;
-  asOfDate: string;
-}
-
-function getAllocatedCredits(
-  leaveType: LeaveTypeKey
-): number {
-  switch (leaveType) {
-    case 'WELLNESS':
-      return 5;
-
-    case 'PERSONAL':
-      return 0; // TODO
-
-    default:
-      return 0;
-  }
-}
-
-
-function countUsedCredits(
-  applications: LeaveApplicationWithDate[],
-  year: number,
-  asOfDate: string
-): number {
-  let used = 0;
-  for (const application of applications) {
-    if (application.is_approved !== 1) continue;
-
-    for (const date of application.dates) {
-      const leaveYear = Number(
-        date.date_value.slice(0, 4)
-      );
-
-      if (leaveYear !== year) continue;
-
-      if (date.date_value <= asOfDate) continue;
-
-      used++;
-    }
-  }
-
-  return used;
-}
-
 async function getCandidateLeaveApplications(
   userId: number | string,
   leaveType: LeaveTypeKey,
@@ -211,9 +162,6 @@ function filterLeaveDatesByYear(applications: LeaveApplicationWithDate[], year: 
   return leaveDates.filter(date => date.startsWith(`${year}-`));
 }
 
-/**
- * Gets the leave balance as of a specific date.
- */
 export async function getLeaveBalance(
   userId: number | string,
   options?: {
