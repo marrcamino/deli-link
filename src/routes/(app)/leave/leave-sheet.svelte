@@ -1,41 +1,24 @@
 <script lang="ts">
   import YearSelector from "$lib/components/inputs/year-selector.svelte";
   import * as AlertDialog from "$lib/components/ui/alert-dialog/index.js";
-  import Badge from "$lib/components/ui/badge/badge.svelte";
   import { Button, buttonVariants } from "$lib/components/ui/button/index.js";
-  import * as Card from "$lib/components/ui/card";
-  import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import * as Empty from "$lib/components/ui/empty/index.js";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
-  import { LEAVE_TYPE_MAP } from "$lib/constants";
+  import { LEAVE_TYPE_MAP, type LeaveTypeEntry } from "$lib/constants";
   import { getDBConn } from "$lib/db";
 
   import AnimationWrapper from "$lib/components/display/animation-wrapper.svelte";
   import EmptyStateWrapper from "$lib/components/display/empty-state-wrapper.svelte";
-  import {
-    formatDate,
-    formatFullName,
-    openPrintWindow,
-    prettifyDates,
-  } from "$lib/utils";
-  import {
-    Calendar,
-    CircleCheck,
-    EllipsisVertical,
-    FileX,
-    Pencil,
-    Plus,
-    Printer,
-    Trash2,
-    Undo2,
-  } from "@lucide/svelte";
+  import { formatFullName } from "$lib/utils";
+  import { FileX, Plus } from "@lucide/svelte";
   import NumberFlow from "@number-flow/svelte";
   import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
-  import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
   import { getLeaveContext } from "./context.svelte";
+  import LeaveCard from "./leave-card.svelte";
+  import { fade, slide } from "svelte/transition";
 
   const ctx = getLeaveContext();
 
@@ -146,7 +129,7 @@
         <div class="flex mt-1">
           <div class="text-xs self-end">
             <div class="leading-4">
-              <span>Wellness Leave bal.</span>
+              <span>{LEAVE_TYPE_MAP.WELLNESS} bal.</span>
               <NumberFlow
                 value={ctx.wellnessLeaveBal}
                 suffix="/5"
@@ -160,8 +143,8 @@
                 }}
               />
             </div>
-            <div class="leading-4">
-              <span>Montly/Personal Leave bal.</span>
+            <div class="leading-4 -translate-y-1">
+              <span>{LEAVE_TYPE_MAP.PERSONAL} bal.</span>
               <NumberFlow
                 value={ctx.officeLeaveBal}
                 suffix="/2"
@@ -215,116 +198,35 @@
           </Empty.Root>
         </EmptyStateWrapper>
 
-        <div>
+        <div class="pb-15">
           {#each ctx.listOfLeave as leave (leave.leave_pk)}
             <AnimationWrapper {disableTransition}>
-              {@const totalDays = leave.dates.length}
-              <Card.Root class="overflow-hidden relative rounded-lg pb-9">
-                <div class="absolute top-1.5 right-1.5">
-                  <DropdownMenu.Root>
-                    <DropdownMenu.Trigger
-                      class="hover:bg-accent rounded-md p-1"
-                    >
-                      <EllipsisVertical class="text-muted-foreground size-4" />
-                    </DropdownMenu.Trigger>
-                    <DropdownMenu.Content align="end">
-                      <DropdownMenu.Group>
-                        <DropdownMenu.Item
-                          onclick={() => {
-                            updateApproveState(
-                              leave.leave_pk,
-                              !leave.is_approved,
-                            );
-                          }}
-                        >
-                          {#if leave.is_approved}
-                            <Undo2 />
-                            <span>Undo Approval</span>
-                          {:else}
-                            <CircleCheck />
-                            <span>Approve</span>
-                          {/if}
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          onclick={() => {
-                            openPrintWindow(leave, leave.leave_type);
-                          }}
-                        >
-                          <Printer />
-                          Print
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Group>
-
-                      <DropdownMenu.Separator />
-
-                      <DropdownMenu.Group>
-                        <DropdownMenu.Item
-                          onclick={() => {
-                            ctx.openLeave = leave;
-                            ctx.addEditDialogState = true;
-                          }}
-                        >
-                          <Pencil />
-                          Edit
-                        </DropdownMenu.Item>
-                        <DropdownMenu.Item
-                          variant="destructive"
-                          onclick={() => {
-                            ctx.openLeave = leave;
-                            ctx.deleteDialogState = true;
-                          }}
-                        >
-                          <Trash2 />
-                          Delete
-                        </DropdownMenu.Item>
-                      </DropdownMenu.Group>
-                    </DropdownMenu.Content>
-                  </DropdownMenu.Root>
-
-                  <div></div>
-                </div>
-
-                <Card.Content class="px-4">
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-3">
-                      <div class="bg-secondary p-2 text-primary rounded-lg">
-                        <Calendar class="w-4 h-4" />
-                      </div>
-                      <div class="text-sm">
-                        <p class="font-semibold flex items-center gap-2">
-                          {#if leave.dates.length === 0}
-                            {formatDate(leave.dates[0].date_value, "long")}
-                          {:else}
-                            {prettifyDates(
-                              leave.dates.map((d) => d.date_value),
-                            )}
-                          {/if}
-                        </p>
-                        <p
-                          class="text-xs text-muted-foreground font-light space-x-4"
-                        >
-                          <span>Date File: {formatDate(leave.date_file)}</span>
-                          <span>Type: {LEAVE_TYPE_MAP[leave.leave_type]}</span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="text-right pr-2 absolute bottom-1.5 right-0">
-                      <Badge
-                        class="bg-primary/10 px-2.5 py-0.5 text-xs rounded-md font-medium text-primary"
-                      >
-                        {totalDays}
-                        Day{totalDays > 1 ? "s" : ""}
-                      </Badge>
-                      <ApproveBadgeIndicator is_approved={leave.is_approved} />
-                    </div>
-                  </div>
-                </Card.Content>
-              </Card.Root>
+              <LeaveCard {leave} />
             </AnimationWrapper>
           {/each}
         </div>
       </div>
+
+      {#if ctx.listOfLeave.length}
+        <div in:fade={{ duration: 250 }} out:fade={{ duration: 200 }}>
+          <div class="absolute bottom-0 bg-background/95 w-full pt-1.5">
+            <div
+              class="flex items-center justify-center text-xs text-muted-foreground gap-4 pb-2"
+            >
+              {#each Object.entries(LEAVE_TYPE_MAP) as LeaveTypeEntry[] as [key, label]}
+                <div class="flex gap-1 items-center">
+                  <div
+                    class="h-3 w-1 rounded-xs {key === 'WELLNESS'
+                      ? 'bg-primary'
+                      : 'bg-blue-600/80'}"
+                  ></div>
+                  {label}
+                </div>
+              {/each}
+            </div>
+          </div>
+        </div>
+      {/if}
     </ScrollArea>
   </Sheet.Content>
 </Sheet.Root>
