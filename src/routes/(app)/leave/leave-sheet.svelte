@@ -5,7 +5,11 @@
   import * as Empty from "$lib/components/ui/empty/index.js";
   import ScrollArea from "$lib/components/ui/scroll-area/scroll-area.svelte";
   import * as Sheet from "$lib/components/ui/sheet/index.js";
-  import { LEAVE_TYPE_MAP, type LeaveTypeEntry } from "$lib/constants";
+  import {
+    DEFAULT_SETTINGS,
+    LEAVE_TYPE_MAP,
+    type LeaveTypeEntry,
+  } from "$lib/constants";
   import { getDBConn } from "$lib/db";
 
   import AnimationWrapper from "$lib/components/display/animation-wrapper.svelte";
@@ -15,10 +19,10 @@
   import NumberFlow from "@number-flow/svelte";
   import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
+  import { fade } from "svelte/transition";
   import AddEditLeaveDialog from "./add-edit-leave-dialog.svelte";
   import { getLeaveContext } from "./context.svelte";
   import LeaveCard from "./leave-card.svelte";
-  import { fade, slide } from "svelte/transition";
 
   const ctx = getLeaveContext();
 
@@ -28,6 +32,16 @@
   // For Number-flow
   const springEasing =
     "linear(0, 0.0021 0.42%, 0.0092, 0.021, 0.0371 1.85%, 0.0838 2.86%, 0.1484 3.92%, 0.2974 5.88%, 0.6283 9.69%, 0.7636 11.34%, 0.8884 13.03%, 0.9878 14.62%, 1.0659 16.16%, 1.0991, 1.1275, 1.1511, 1.1701 19.34%, 1.1856, 1.1964 21.03%, 1.2038, 1.2052 23.15%, 1.2007 24.32%, 1.1904 25.53%, 1.177 26.65%, 1.1582 27.92%, 1.0554 33.8%, 1.0312 35.33%, 1.0108 36.82%, 0.9915 38.51%, 0.9772 40.15%, 0.9667 41.85%, 0.9604 43.6%, 0.9578 45.82%, 0.9608 48.37%, 0.9675 50.8%, 0.9971 59.44%, 1.0039 62.56%, 1.0077 65.79%, 1.0081 71.14%, 0.9988 86.88%, 0.9991 99.96%)";
+  const numberFlowTiming = {
+    wellness: {
+      duration: 750,
+      easing: springEasing,
+    },
+    personal: {
+      duration: 800,
+      easing: springEasing,
+    },
+  };
 
   async function deleteLeave() {
     const db = await getDBConn();
@@ -43,19 +57,11 @@
     }
 
     toast.success("Leave deleted successfully");
-
-    ctx.remove(ctx.openLeave?.leave_pk!);
+    if (ctx.openLeave) {
+      ctx.removeLeave(ctx.openLeave.leave_pk);
+      await ctx.refreshLeaveInfo(ctx.openLeave.user_fk);
+    }
     ctx.deleteDialogState = false;
-  }
-
-  async function updateApproveState(id: number, approve: boolean) {
-    const db = await getDBConn();
-    await db.execute(
-      "UPDATE leave_application SET is_approved = ? WHERE leave_pk = ?",
-      [Number(approve), id],
-    );
-
-    ctx.update({ leave_pk: id, is_approved: Number(approve) as Bit });
   }
 
   $effect(() => {
@@ -132,30 +138,18 @@
               <span>{LEAVE_TYPE_MAP.WELLNESS} bal.</span>
               <NumberFlow
                 value={ctx.wellnessLeaveBal}
-                suffix="/5"
-                transformTiming={{
-                  duration: 750,
-                  easing: springEasing,
-                }}
-                spinTiming={{
-                  duration: 750,
-                  easing: springEasing,
-                }}
+                suffix="/{DEFAULT_SETTINGS.maxWellnessLeave}"
+                transformTiming={numberFlowTiming.wellness}
+                spinTiming={numberFlowTiming.wellness}
               />
             </div>
             <div class="leading-4 -translate-y-1">
               <span>{LEAVE_TYPE_MAP.PERSONAL} bal.</span>
               <NumberFlow
                 value={ctx.officeLeaveBal}
-                suffix="/2"
-                transformTiming={{
-                  duration: 800,
-                  easing: springEasing,
-                }}
-                spinTiming={{
-                  duration: 800,
-                  easing: springEasing,
-                }}
+                suffix="/{DEFAULT_SETTINGS.maxPersonalLeave}"
+                transformTiming={numberFlowTiming.personal}
+                spinTiming={numberFlowTiming.personal}
               />
             </div>
           </div>

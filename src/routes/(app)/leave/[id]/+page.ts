@@ -1,5 +1,4 @@
 import { getDBConn } from '$lib/db';
-import { countTotalLeaveDays } from "$lib/helper";
 import { getLeaveApplications, getLeaveBalance } from '$lib/services';
 import type { PageLoad } from './$types';
 
@@ -34,7 +33,7 @@ export const load: PageLoad = async ({ params }) => {
     allApproveLeaveDates = [...theDays, ...allApproveLeaveDates]
   }
 
-  const leaveBalance = await getLeaveBalance(userLeave.user_pk, { asOfDate: userLeave.date_file, leaveType: "WELLNESS" })
+  const leaveBalance = await getLeaveBalance(userLeave.user_pk, { asOfDate: userLeave.date_file, leaveType: userLeave.leave_type })
 
   return {
     userLeave,

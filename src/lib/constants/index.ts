@@ -15,5 +15,10 @@ export const PASS_SLIP_TYPE_MAP = {
 export type PassSlipTypeKey = keyof typeof PASS_SLIP_TYPE_MAP
 export type PassSlipTypeValue = typeof PASS_SLIP_TYPE_MAP[keyof typeof PASS_SLIP_TYPE_MAP];
 
+export const DEFAULT_SETTINGS = {
+  maxWellnessLeave: 5,
+  maxPersonalLeave: 2,
+} as const
+
 export * from "./months";
 

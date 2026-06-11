@@ -15,9 +15,10 @@
     Trash2,
     Undo2,
   } from "@lucide/svelte";
+  import { fade } from "svelte/transition";
   import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
   import { getLeaveContext } from "./context.svelte";
-  import { fade } from "svelte/transition";
+
   interface Props {
     leave: LeaveApplicationWithDate;
   }
@@ -43,7 +44,9 @@
       [Number(approve), id],
     );
 
-    ctx.update({ leave_pk: id, is_approved: Number(approve) as Bit });
+    ctx.updateLeave({ leave_pk: id, is_approved: Number(approve) as Bit });
+
+    if (ctx.openUser) await ctx.refreshLeaveInfo(ctx.openUser.user_pk);
   }
 </script>
 
@@ -53,7 +56,7 @@
 >
   <div class="absolute top-1.5 right-1.5">
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger class="hover:bg-accent rounded-md p-1">
+      <DropdownMenu.Trigger class="hover:bg-accent rounded-md py-1 px-0.5">
         <EllipsisVertical class="text-muted-foreground size-4" />
       </DropdownMenu.Trigger>
       <DropdownMenu.Content align="end">
@@ -136,7 +139,10 @@
           </div>
           <p class="text-xs space-x-4 {textColor} h-4">
             {#key leave.leave_type}
-              <span in:fade={{ delay: 300, duration: 250 }} out:fade={{duration: 200}}>
+              <span
+                in:fade={{ delay: 300, duration: 250 }}
+                out:fade={{ duration: 200 }}
+              >
                 {LEAVE_TYPE_MAP[leave.leave_type]}
               </span>
             {/key}

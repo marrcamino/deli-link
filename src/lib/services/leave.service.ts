@@ -173,7 +173,7 @@ export async function getLeaveBalance(
     options?.asOfDate ??
     NativeDateHelper.isoToday;
 
-  const leaveType =
+  const leaveType: LeaveTypeKey =
     options?.leaveType ??
     'WELLNESS';
 
@@ -190,9 +190,6 @@ export async function getLeaveBalance(
     );
 
   const filteredLeaveDateByYear = filterLeaveDatesByYear(applications, year)
-
-
-
 
   return filteredLeaveDateByYear.length;
 }

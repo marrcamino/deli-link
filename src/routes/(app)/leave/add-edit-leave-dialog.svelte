@@ -71,9 +71,10 @@
       });
 
       toast.success(res.message);
-      ctx.add(res.data);
+      ctx.addLeave(res.data);
       currentLeave = res.data;
       ctx.openLeave = res.data;
+      await ctx.refreshLeaveInfo(res.data.user_fk);
     } catch (e) {
       console.error(e);
       toast.error("There was an error while saving", {
@@ -100,8 +101,9 @@
         newDates: inclusiveDates.map((d) => d.toString()),
       });
 
-      toast.success(res.message, {duration: Infinity});
-      ctx.update(res.data);
+      toast.success(res.message);
+      ctx.updateLeave(res.data);
+      await ctx.refreshLeaveInfo(leave.user_fk);
     } catch (error) {
       console.error(error);
       toast.error("There was an error while updating", {

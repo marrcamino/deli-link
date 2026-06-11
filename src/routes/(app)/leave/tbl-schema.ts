@@ -7,7 +7,12 @@ import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 import TblCellTotalPending from "./tbl-cell-total-pending.svelte";
 import { divWrap } from "$lib/components/display/div-wrapper.svelte";
 
-export const columns: ColumnDef<User, unknown>[] = [
+export type UserWithLeaveStatus = User & {
+  wellnesslLeaveBal: number,
+  personalLeaveBal: number,
+  pending: number
+}
+export const columns: ColumnDef<UserWithLeaveStatus, unknown>[] = [
   {
     id: "number",
     header: "#",
@@ -20,8 +25,8 @@ export const columns: ColumnDef<User, unknown>[] = [
     cell: ({ row }) => formatFullName(row.original, { abbreviateMiddle: true })
   },
   {
-    id: "used-leave",
-    header: () => divWrap("USED WL", 'text-center'),
+    id: "leave-bal",
+    header: () => divWrap("LEAVE BALANCE", 'text-center'),
     cell: ({ row }) =>
       renderComponent(TblCellUsedLeave, { user: row.original }),
 

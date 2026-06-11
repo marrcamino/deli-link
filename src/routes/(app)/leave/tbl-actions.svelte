@@ -1,12 +1,13 @@
 <script lang="ts">
+  import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
   import Button from "$lib/components/ui/button/button.svelte";
   import { Plus } from "@lucide/svelte";
-  import * as ButtonGroup from "$lib/components/ui/button-group/index.js";
   import { getLeaveContext } from "./context.svelte";
+  import type { UserWithLeaveStatus } from "./tbl-schema";
 
   const ctx = getLeaveContext();
   interface Props {
-    user: User;
+    user: UserWithLeaveStatus;
   }
   let { user }: Props = $props();
 </script>

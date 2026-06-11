@@ -4,7 +4,11 @@
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import { Label } from "$lib/components/ui/label/index.js";
-  import { LEAVE_TYPE_MAP, type LeaveTypeKey } from "$lib/constants";
+  import {
+    DEFAULT_SETTINGS,
+    LEAVE_TYPE_MAP,
+    type LeaveTypeKey,
+  } from "$lib/constants";
   import { getUserPref, setUserPref } from "$lib/helper";
   import {
     formatDate,
@@ -290,7 +294,9 @@
           </h2>
           <p class="text-[10px] mb-2 font-semibold">
             As of
-            <span class="group-data-empty:hidden">{formatDate(data.userLeave?.date_file, 'long')}</span>
+            <span class="group-data-empty:hidden"
+              >{formatDate(data.userLeave?.date_file, "long")}</span
+            >
             <span
               class="hidden border-b border-black w-30 group-data-empty:inline-block"
             ></span>
@@ -312,19 +318,20 @@
               <tr class="h-6.5 font-semibold text-sm">
                 <td class="border-r border-black">
                   <span class="group-data-empty:hidden">
-                    {printTypeIsWellness ? 5 : 2}
+                    {printTypeIsWellness
+                      ? DEFAULT_SETTINGS.maxWellnessLeave
+                      : DEFAULT_SETTINGS.maxPersonalLeave}
                   </span>
                 </td>
                 <td class="border-r border-black p-0.5">
-                  {data.allApproveLeaveDates
-                    ? data.leaveLeft
-                    : ""}
+                  {data.allApproveLeaveDates ? data.leaveLeft : ""}
                 </td>
                 <td class="p-0.5">
                   {#if data.allApproveLeaveDates}
                     {printTypeIsWellness
-                      ? 5 -data.leaveLeft
-                      : 2 - data.allApproveLeaveDates.length}
+                      ? DEFAULT_SETTINGS.maxWellnessLeave - data.leaveLeft
+                      : DEFAULT_SETTINGS.maxPersonalLeave -
+                        data.allApproveLeaveDates.length}
                   {/if}
                 </td>
               </tr>

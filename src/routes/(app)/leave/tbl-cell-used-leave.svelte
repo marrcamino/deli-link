@@ -1,39 +1,68 @@
 <script lang="ts">
-  import { getLeaveBalance } from "$lib/services";
-  import { onMount, untrack } from "svelte";
+  import * as Tooltip from "$lib/components/ui/tooltip/index.js";
+  import { DEFAULT_SETTINGS } from "$lib/constants";
+  import { onMount } from "svelte";
   import { getLeaveContext } from "./context.svelte";
+  import type { UserWithLeaveStatus } from "./tbl-schema";
 
-  let { user }: { user: User } = $props();
+  let { user }: { user: UserWithLeaveStatus } = $props();
 
   const ctx = getLeaveContext();
 
-  let leaveBalance = $state(0);
-
-  async function setLeaveApplications() {
-    leaveBalance = await getLeaveBalance(user.user_pk, {
-      leaveType: "WELLNESS",
-      asOfDate: `${ctx.selectedYear}-12-31`,
-    });
-  }
-
-  // Refresh this user's leave balance after the sheet closes
-  $effect(() => {
-    ctx.sheetState;
-    untrack(async () => {
-      if (ctx.sheetState || ctx.openUser?.user_pk !== user.user_pk) return;
-      await setLeaveApplications();
-    });
-  });
-
   onMount(async () => {
-    await setLeaveApplications();
+    await ctx.refreshLeaveInfo(user.user_pk);
   });
 </script>
 
-<div class="flex items-end place-self-center">
-  <span class="text-lg">
-    {leaveBalance}
-  </span>
-  <span class="text-muted-foreground">/</span>
-  <span class="text-muted-foreground">5</span>
+<div class="flex justify-center gap-1">
+  <!-- Wellness -->
+  <Tooltip.Provider>
+    <Tooltip.Root>
+      <Tooltip.Trigger
+        class="inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs"
+      >
+        <span>WL</span>
+        <span>{user.wellnesslLeaveBal}</span>
+      </Tooltip.Trigger>
+
+      <Tooltip.Content>
+        <div class="text-sm">
+          <p class="font-semibold leading-6">Wellness Leave</p>
+          <p class="leading-4">
+            Remaining: {DEFAULT_SETTINGS.maxWellnessLeave -
+              user.wellnesslLeaveBal} day&lpar;s&rpar;
+          </p>
+          <p class="leading-4">
+            Maximum: {DEFAULT_SETTINGS.maxWellnessLeave} day&lpar;s&rpar;
+          </p>
+        </div>
+      </Tooltip.Content>
+    </Tooltip.Root>
+  </Tooltip.Provider>
+
+  <!-- Personal -->
+  <Tooltip.Provider>
+    <Tooltip.Root>
+      <Tooltip.Trigger>
+        <button
+          type="button"
+          class="inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs"
+        >
+          <span>PL</span>
+          <span>{user.personalLeaveBal}</span>
+        </button>
+      </Tooltip.Trigger>
+
+      <Tooltip.Content>
+        <div class="text-sm">
+          <p class="font-semibold">Personal Leave</p>
+          <p>
+            Remaining: {DEFAULT_SETTINGS.maxPersonalLeave -
+              user.personalLeaveBal} day&lpar;s&rpar;
+          </p>
+          <p>Maximum: {DEFAULT_SETTINGS.maxPersonalLeave} day&lpar;s&rpar;</p>
+        </div>
+      </Tooltip.Content>
+    </Tooltip.Root>
+  </Tooltip.Provider>
 </div>
