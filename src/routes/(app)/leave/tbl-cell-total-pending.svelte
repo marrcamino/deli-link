@@ -12,15 +12,16 @@
 </div>
 
 {#snippet balanceTooltip(leaveType: LeaveTypeKey)}
+  {@const isWellnessLeave = leaveType === "WELLNESS"}
   {@const pendingCount =
-    user[leaveType === "WELLNESS" ? "wellnessPending" : "personalPending"]}
+    user[isWellnessLeave ? "wellnessPending" : "personalPending"]}
 
   <Tooltip.Provider delayDuration={150}>
     <Tooltip.Root>
       <Tooltip.Trigger
         class="inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs"
       >
-        <span> {leaveType === "WELLNESS" ? "WL" : "PL"}</span>
+        <span> {isWellnessLeave ? "WL" : "PL"}</span>
         <span>{pendingCount}</span>
       </Tooltip.Trigger>
 

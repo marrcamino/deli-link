@@ -223,7 +223,7 @@
               required
               bind:values={inclusiveDates}
               name="date_file"
-              triggerOptions={{ class: "max-w-77.5" }}
+              // triggerOptions={{ class: "max-w-77.5" }}
               bind:placeholder
             />
           </Label>

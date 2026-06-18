@@ -89,6 +89,8 @@
   {#snippet header()}
     <div class="w-full">
       <div class="flex items-center w-full place-self-center md:max-w-xl">
+        <div class="font-semibold">Employee Leave Overview</div>
+
         <DropdownMenu.Root>
           <DropdownMenu.Trigger
             class={buttonVariants({ class: "ml-auto cursor-pointer" })}

@@ -259,3 +259,52 @@ export function formatPHTime(date: Date | string | number = new Date()): string 
     hour12: true,
   }).format(d);
 }
+
+
+type InputDate = Date | string
+
+function toValidDate(input: InputDate): Date | null {
+  const date = typeof input === 'string' ? new Date(input) : input
+
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/**
+ * Formats a date into a "Month Year" label (e.g. "June 2026").
+ *
+ * @param input - Date object or ISO date string
+ * @param options - Formatting options
+ * @param options.locale - Locale used for formatting (default: "en-US")
+ * @param options.timeZone - Time zone used for formatting (default: "Asia/Manila")
+ * @returns Formatted month-year string, or empty string if input is invalid
+ *
+ * @example
+ * formatMonthYear(new Date("2026-06-01"))
+ * // "June 2026"
+ *
+ * @example
+ * formatMonthYear("2026-06-01T00:00:00Z", {
+ *   locale: "en-US",
+ *   timeZone: "Asia/Manila"
+ * })
+ * // "June 2026"
+ */
+export function formatMonthYear(
+  input: InputDate,
+  options?: {
+    locale?: string
+    timeZone?: string
+  }
+): string {
+  const date = toValidDate(input)
+  if (!date) return ''
+
+  const locale = options?.locale ?? 'en-US'
+  const timeZone = options?.timeZone ?? 'Asia/Manila'
+
+  return date.toLocaleString(locale, {
+    month: 'long',
+    year: 'numeric',
+    timeZone,
+  })
+}

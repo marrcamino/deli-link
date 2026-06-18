@@ -30,12 +30,12 @@ export async function getLeaveApplications(
   const params: any[] = [userId];
 
   const yearStr = options?.year?.toString() || NativeDateHelper.currentYear;
-  conditions.push("strftime('%Y', created_at) = ?");
+  conditions.push("strftime('%Y', date_file) = ?");
   params.push(yearStr);
 
   if (options?.month) {
     const monthVal = options.month.toString().padStart(2, '0');
-    conditions.push("strftime('%m', created_at) = ?");
+    conditions.push("strftime('%m', date_file) = ?");
     params.push(monthVal);
   }
 
@@ -49,7 +49,7 @@ export async function getLeaveApplications(
     SELECT *
     FROM leave_application
     WHERE ${conditions.join(' AND ')}
-    ORDER BY created_at ASC
+    ORDER BY date_file ASC
   `;
 
   const leaves = await db.select<LeaveApplication[]>(leaveQuery, params);

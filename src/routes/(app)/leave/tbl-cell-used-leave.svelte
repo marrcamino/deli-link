@@ -1,6 +1,13 @@
+<script module>
+  import { formatMonthYear, NativeDateHelper } from "$lib/utils";
+
+  const currentYear = NativeDateHelper.currentYear;
+  const currentMonthYear = formatMonthYear(new Date());
+</script>
+
 <script lang="ts">
   import * as Tooltip from "$lib/components/ui/tooltip/index.js";
-  import { DEFAULT_SETTINGS, type LeaveTypeKey } from "$lib/constants";
+  import { type LeaveTypeKey } from "$lib/constants";
   import { onMount } from "svelte";
   import { getLeaveContext } from "./context.svelte";
   import type { UserWithLeaveStatus } from "./tbl-schema";
@@ -20,18 +27,16 @@
 </div>
 
 {#snippet balanceTooltip(leaveType: LeaveTypeKey)}
-  {@const dataKey =
-    leaveType === "WELLNESS" ? "wellnesslLeaveBal" : "personalLeaveBal"}
-  {@const settingKey =
-    leaveType === "WELLNESS" ? "maxWellnessLeave" : "maxPersonalLeave"}
-  {@const remaining = user[dataKey]}
-  
+  {@const isWellnessLeave = leaveType === "WELLNESS"}
+  {@const remaining =
+    user[isWellnessLeave ? "wellnesslLeaveBal" : "personalLeaveBal"]}
+
   <Tooltip.Provider delayDuration={150}>
     <Tooltip.Root>
       <Tooltip.Trigger
         class="inline-flex items-center gap-1 rounded-sm bg-muted px-1.5 py-0.5 text-xs"
       >
-        <span> {leaveType === "WELLNESS" ? "WL" : "PL"}</span>
+        <span>{isWellnessLeave ? "WL" : "PL"}</span>
         <span>{remaining}</span>
       </Tooltip.Trigger>
 
@@ -41,10 +46,7 @@
             {leaveType.toLowerCase()} Leave
           </p>
           <p class="leading-4">
-            Remaining: {remaining} day&lpar;s&rpar;
-          </p>
-          <p class="leading-4">
-            Maximum: {DEFAULT_SETTINGS[settingKey]} day&lpar;s&rpar;
+            {isWellnessLeave ? currentYear : currentMonthYear} &bull; Balance: {remaining}
           </p>
         </div>
       </Tooltip.Content>
