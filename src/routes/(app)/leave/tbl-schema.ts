@@ -1,16 +1,17 @@
+import { divWrap } from "$lib/components/display/div-wrapper.svelte";
+import { renderComponent } from "$lib/components/ui/data-table/index.js";
 import { tableRowNumber } from "$lib/helper";
 import { formatFullName } from "$lib/utils";
 import type { ColumnDef } from "@tanstack/table-core";
 import TblActions from "./tbl-actions.svelte";
-import { renderComponent } from "$lib/components/ui/data-table/index.js";
-import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 import TblCellTotalPending from "./tbl-cell-total-pending.svelte";
-import { divWrap } from "$lib/components/display/div-wrapper.svelte";
+import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 
 export type UserWithLeaveStatus = User & {
   wellnesslLeaveBal: number,
   personalLeaveBal: number,
-  pending: number
+  wellnessPending: number
+  personalPending: number
 }
 export const columns: ColumnDef<UserWithLeaveStatus, unknown>[] = [
   {

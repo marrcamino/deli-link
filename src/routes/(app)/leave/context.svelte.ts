@@ -28,9 +28,11 @@ class LeaveContext {
   constructor() {
     getUsers().then(u => {
       this.users = u.map(u => ({
-        ...u, wellnesslLeaveBal: 0,
+        ...u,
+        wellnesslLeaveBal: 0,
         personalLeaveBal: 0,
-        pending: 0
+        wellnessPending: 0,
+        personalPending: 0
       }))
     })
 
@@ -107,7 +109,16 @@ class LeaveContext {
 
   async refreshLeaveInfo(userPk: number) {
     const asOfDate = `${this.selectedYear}-12-31`
-    const [wellnessBal, personalBal, pending] = await Promise.all([
+
+    const getPending = async () => {
+      const allPending = await this.getLeaveApplications(userPk, 'not_approved')
+      const wellnessPending = allPending.filter(l => l.leave_type === 'WELLNESS')
+      const personalPending = allPending.filter(l => l.leave_type === 'PERSONAL')
+
+      return [wellnessPending.length, personalPending.length] as const
+    }
+
+    const [wellnessBal, personalBal, wlBal, plBal] = await Promise.all([
       getLeaveBalance(userPk, {
         leaveType: "WELLNESS",
         asOfDate,
@@ -116,14 +127,15 @@ class LeaveContext {
         leaveType: "PERSONAL",
         asOfDate,
       }),
-      (await this.getLeaveApplications(userPk, 'not_approved')).length
+      ...(await getPending())
     ]);
 
     this.updateUserInfo({
       user_pk: userPk,
       wellnesslLeaveBal: DEFAULT_SETTINGS.maxWellnessLeave - wellnessBal,
       personalLeaveBal: DEFAULT_SETTINGS.maxPersonalLeave - personalBal,
-      pending
+      wellnessPending: wlBal,
+      personalPending: plBal
     });
   }
 
