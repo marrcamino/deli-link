@@ -7,7 +7,7 @@
     placeholder?: string;
     size?: "sm" | "default";
     yearsBack?: number; // Default for leave history
-    yearsForward?: number; // Added buffer for future planning
+    yearsForward?: number; // Added buffer for future planning, defaults to `0`
     onOpenChange?: (open: boolean) => void;
   }
 
@@ -15,7 +15,7 @@
     value = $bindable(""),
     placeholder = "Select year",
     yearsBack = 100,
-    yearsForward = 5,
+    yearsForward = 0,
     onOpenChange,
     ...restProps
   }: Props &

@@ -11,7 +11,7 @@ import { NativeDateHelper } from "$lib/utils";
  * @param {Object} [options] - Optional filters to refine the results.
  * @param {number | string} [options.year] - The year to filter by. Defaults to the current year if not provided.
  * @param {number | string} [options.month] - The month to filter by (1-12). If provided, filters results to that specific month.
- * @param {'approve_only' | 'not_approve_only'} [options.approveStatus] - Filter to show only approved or only non-approved applications.
+ * @param {'approved' | 'not_approved'} [options.approvalStatus] - Filter to show only approved or only non-approved applications.
  * @param {LeaveTypeKey} [options.leaveType] - Filter by a specific type of leave (e.g., 'Wellness Leave', 'Office Leave').
  * @returns {Promise<LeaveApplicationWithDate[]>} A list of leave applications including their nested date details.
  */
@@ -20,7 +20,7 @@ export async function getLeaveApplications(
   options?: {
     year?: number | string,
     month?: number | string,
-    approveStatus?: 'approve_only' | 'not_approve_only',
+    approvalStatus?: 'approved' | 'not_approved',
     leaveType?: LeaveTypeKey
   }
 ): Promise<LeaveApplicationWithDate[]> {
@@ -30,17 +30,17 @@ export async function getLeaveApplications(
   const params: any[] = [userId];
 
   const yearStr = options?.year?.toString() || NativeDateHelper.currentYear;
-  conditions.push("strftime('%Y', created_at) = ?");
+  conditions.push("strftime('%Y', date_file) = ?");
   params.push(yearStr);
 
   if (options?.month) {
     const monthVal = options.month.toString().padStart(2, '0');
-    conditions.push("strftime('%m', created_at) = ?");
+    conditions.push("strftime('%m', date_file) = ?");
     params.push(monthVal);
   }
 
-  if (options?.approveStatus === 'approve_only') conditions.push('is_approved = 1');
-  if (options?.approveStatus === 'not_approve_only') conditions.push('is_approved = 0');
+  if (options?.approvalStatus === 'approved') conditions.push('is_approved = 1');
+  if (options?.approvalStatus === 'not_approved') conditions.push('is_approved = 0');
 
   if (options?.leaveType === 'WELLNESS') conditions.push("leave_type = 'WELLNESS'");
   if (options?.leaveType === 'PERSONAL') conditions.push("leave_type = 'PERSONAL'");
@@ -49,8 +49,8 @@ export async function getLeaveApplications(
     SELECT *
     FROM leave_application
     WHERE ${conditions.join(' AND ')}
-    ORDER BY created_at ASC
-  `;  
+    ORDER BY date_file ASC
+  `;
 
   const leaves = await db.select<LeaveApplication[]>(leaveQuery, params);
 
@@ -86,4 +86,110 @@ export async function getLeaveApplications(
     ...leave,
     dates: dateMap.get(leave.leave_pk) ?? []
   }));
+}
+
+async function getCandidateLeaveApplications(
+  userId: number | string,
+  leaveType: LeaveTypeKey,
+  year: number,
+  asOfDate: string
+): Promise<LeaveApplicationWithDate[]> {
+  const db = await getDBConn();
+
+
+  const applications = await db.select<LeaveApplication[]>(
+    `
+      SELECT *
+      FROM leave_application
+      WHERE user_fk = ?
+        AND leave_type = ?
+        AND date_file >= ?
+        AND date_file <= ?
+      ORDER BY date_file ASC
+    `,
+    [
+      userId,
+      leaveType,
+      // Look back 2 months basi naay application where the dates are mixed year
+      `${year - 1}-11-01`,
+      asOfDate
+    ]
+  );
+
+  if (applications.length === 0) return []
+
+  const leaveIds = applications.map(
+    application => application.leave_pk
+  );
+
+  const placeholders = leaveIds
+    .map(() => '?')
+    .join(',');
+
+  const dates = await db.select<LeaveDate[]>(
+    `
+      SELECT *
+      FROM leave_date
+      WHERE leave_fk IN (${placeholders})
+      ORDER BY date_value ASC
+    `,
+    leaveIds
+  );
+
+  const dateMap = new Map<number, LeaveDate[]>();
+
+  for (const date of dates) {
+    if (!dateMap.has(date.leave_fk)) {
+      dateMap.set(date.leave_fk, []);
+    }
+
+    dateMap.get(date.leave_fk)!.push(date);
+  }
+
+  return applications.map(application => ({
+    ...application,
+    dates: dateMap.get(application.leave_pk) ?? []
+  }));
+}
+
+function filterLeaveDatesByYear(applications: LeaveApplicationWithDate[], year: number) {
+  const allApprovedApplications = applications.filter(l => l.is_approved === 1)
+
+  const leaveDates = allApprovedApplications.flatMap((leave) =>
+    leave.dates.map((date) => date.date_value)
+  );
+
+  return leaveDates.filter(date => date.startsWith(`${year}-`));
+}
+
+export async function getLeaveBalance(
+  userId: number | string,
+  options?: {
+    asOfDate?: string;
+    leaveType?: LeaveTypeKey;
+  }
+): Promise<number> {
+  const asOfDate =
+    options?.asOfDate ??
+    NativeDateHelper.isoToday;
+
+  const leaveType: LeaveTypeKey =
+    options?.leaveType ??
+    'WELLNESS';
+
+  const year = Number(
+    asOfDate.slice(0, 4)
+  );
+
+  const applications =
+    await getCandidateLeaveApplications(
+      userId,
+      leaveType,
+      year,
+      asOfDate
+    );
+
+  const filteredLeaveDateByYear = filterLeaveDatesByYear(applications, year)
+
+  return filteredLeaveDateByYear.length;
 }

@@ -1,16 +1,17 @@
-import type { LeaveTypeKey } from "$lib/constants";
-import { getLeaveApplications, getUsers } from "$lib/services";
+import { DEFAULT_SETTINGS, type LeaveTypeKey } from "$lib/constants";
+import { getLeaveApplications, getLeaveBalance, getUsers } from "$lib/services";
 import type { LeaveApplicationWithDate } from "$lib/types";
 import { getContext, setContext, untrack } from "svelte";
+import type { UserWithLeaveStatus } from "./tbl-schema";
 
 const CONTEXT_KEY = Symbol("leave-context");
 
 class LeaveContext {
-  users: User[] = $state([])
+  users: UserWithLeaveStatus[] = $state([])
   listOfLeave: LeaveApplicationWithDate[] = $state([]);
 
   // When editing
-  openUser: User | null = $state(null)
+  openUser: UserWithLeaveStatus | null = $state(null)
   openLeave: LeaveApplicationWithDate | null = $state(null)
 
   // Dialog and sheet states
@@ -25,7 +26,15 @@ class LeaveContext {
   officeLeaveBal = $state(0)
 
   constructor() {
-    getUsers().then(u => this.users = u)
+    getUsers().then(u => {
+      this.users = u.map(u => ({
+        ...u,
+        wellnesslLeaveBal: 0,
+        personalLeaveBal: 0,
+        wellnessPending: 0,
+        personalPending: 0
+      }))
+    })
 
     // Refetch leave applications when selected year changes
     $effect(() => {
@@ -48,11 +57,11 @@ class LeaveContext {
   }
 
   private async loadLeaveApplications(id: number) {
-    this.listOfLeave = await this.getLeaveApplications(id);
+    this.listOfLeave = (await this.getLeaveApplications(id)).reverse();
   }
 
   private getLeaveBalance() {
-    if (!this.listOfLeave.length) return { wellness: 5, office: 2 }
+    if (!this.listOfLeave.length) return { wellness: DEFAULT_SETTINGS.maxWellnessLeave, office: DEFAULT_SETTINGS.maxPersonalLeave }
 
     const getApprovedLeave = (leaveType: LeaveTypeKey) => {
       if (!this.listOfLeave.length) return []
@@ -65,37 +74,72 @@ class LeaveContext {
 
 
     return {
-      wellness: 5 - getTotalDays(getApprovedLeave("WELLNESS")),
-      office: 2 - getTotalDays(getApprovedLeave("PERSONAL"))
+      wellness: DEFAULT_SETTINGS.maxWellnessLeave - getTotalDays(getApprovedLeave("WELLNESS")),
+      office: DEFAULT_SETTINGS.maxPersonalLeave - getTotalDays(getApprovedLeave("PERSONAL"))
     }
   }
 
-  async getLeaveApplications(id: number, approveStatus?: 'approve_only' | 'not_approve_only') {
-    return await getLeaveApplications(id, { year: this.selectedYear.toString(), approveStatus })
+  private updateUserInfo(user: Partial<UserWithLeaveStatus> & { user_pk: number }) {
+    this.users = this.users.map(u => u.user_pk === user.user_pk ? { ...u, ...user } : u)
   }
 
-  add(newLeave: LeaveApplicationWithDate) {
+  async getLeaveApplications(id: number, approveStatus?: 'approved' | 'not_approved') {
+    return await getLeaveApplications(id, { year: this.selectedYear.toString(), approvalStatus: approveStatus })
+  }
+
+  addLeave(newLeave: LeaveApplicationWithDate) {
     this.listOfLeave = [newLeave, ...this.listOfLeave]
   }
-  remove(id: number) {
+  removeLeave(id: number) {
     this.listOfLeave = this.listOfLeave.filter(l => l.leave_pk !== id)
   }
-
-  update(leave: Partial<LeaveApplication> & { leave_pk: number }) {
+  updateLeave(leave: Partial<LeaveApplication> & { leave_pk: number }) {
     this.listOfLeave = this.listOfLeave.map((l) =>
       l.leave_pk === leave.leave_pk
-        ? { ...l, ...leave } // merge instead of replace
+        ? { ...l, ...leave }
         : l
     );
   }
 
-  async openSheet(user: User) {
+  async openSheet(user: UserWithLeaveStatus) {
     this.openUser = user
     this.sheetState = true
     await this.loadLeaveApplications(user.user_pk)
   }
 
-  openLeaveDialog(user: User) {
+  async refreshLeaveInfo(userPk: number) {
+    const asOfDate = `${this.selectedYear}-12-31`
+
+    const getPending = async () => {
+      const allPending = await this.getLeaveApplications(userPk, 'not_approved')
+      const wellnessPending = allPending.filter(l => l.leave_type === 'WELLNESS')
+      const personalPending = allPending.filter(l => l.leave_type === 'PERSONAL')
+
+      return [wellnessPending.length, personalPending.length] as const
+    }
+
+    const [wellnessBal, personalBal, wlBal, plBal] = await Promise.all([
+      getLeaveBalance(userPk, {
+        leaveType: "WELLNESS",
+        asOfDate,
+      }),
+      getLeaveBalance(userPk, {
+        leaveType: "PERSONAL",
+        asOfDate,
+      }),
+      ...(await getPending())
+    ]);
+
+    this.updateUserInfo({
+      user_pk: userPk,
+      wellnesslLeaveBal: DEFAULT_SETTINGS.maxWellnessLeave - wellnessBal,
+      personalLeaveBal: DEFAULT_SETTINGS.maxPersonalLeave - personalBal,
+      wellnessPending: wlBal,
+      personalPending: plBal
+    });
+  }
+
+  openLeaveDialog(user: UserWithLeaveStatus) {
     if (!this.sheetState) {
       this.sheetState = true
       setTimeout(() => {

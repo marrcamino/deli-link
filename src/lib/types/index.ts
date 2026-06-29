@@ -1,3 +1,4 @@
+// NOTE: value types must be string, null or mix string and null
 export type UserPrefKeys = {
   /** DTR Open Tab */
   dtr_open_tab: 'users' | 'logs';

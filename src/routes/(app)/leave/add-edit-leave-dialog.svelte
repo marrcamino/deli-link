@@ -35,7 +35,7 @@
   let placeholder: DateValue | undefined = $state();
   let currentLeave: LeaveApplication | null = $state(null);
   let leaveType = $state<LeaveTypeKey>("WELLNESS");
-  let isApprove = $state(false);
+  let isApprove = $state(true);
 
   const slideHorizontally = (node: HTMLElement) => {
     return slide(node, { axis: "x" });
@@ -71,9 +71,10 @@
       });
 
       toast.success(res.message);
-      ctx.add(res.data);
+      ctx.addLeave(res.data);
       currentLeave = res.data;
       ctx.openLeave = res.data;
+      await ctx.refreshLeaveInfo(res.data.user_fk);
     } catch (e) {
       console.error(e);
       toast.error("There was an error while saving", {
@@ -100,8 +101,9 @@
         newDates: inclusiveDates.map((d) => d.toString()),
       });
 
-      toast.success(res.message, {duration: Infinity});
-      ctx.update(res.data);
+      toast.success(res.message);
+      ctx.updateLeave(res.data);
+      await ctx.refreshLeaveInfo(leave.user_fk);
     } catch (error) {
       console.error(error);
       toast.error("There was an error while updating", {
@@ -147,7 +149,7 @@
       inclusiveDates = [];
       currentLeave = null;
       leaveType = "WELLNESS";
-      isApprove = false;
+      isApprove = true;
     }
   }}
 >
@@ -221,7 +223,7 @@
               required
               bind:values={inclusiveDates}
               name="date_file"
-              triggerOptions={{ class: "max-w-77.5" }}
+              // triggerOptions={{ class: "max-w-77.5" }}
               bind:placeholder
             />
           </Label>

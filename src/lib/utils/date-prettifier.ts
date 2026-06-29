@@ -81,7 +81,8 @@ const monthNames = [
 
 function formatRange(r: number | [number, number]): string {
   if (typeof r === "number") return r.toString();
-  return `${r[0]}-${r[1]}`;
+  // \u2013 for en dash
+  return `${r[0]}\u2013${r[1]}`;
 }
 
 export function prettifyDates(dateStrs: string[] | DateValue[]): string {

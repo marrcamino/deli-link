@@ -1,6 +1,5 @@
 import { getDBConn } from '$lib/db';
-import { countTotalLeaveDays } from "$lib/helper";
-import { getLeaveApplications } from '$lib/services';
+import { getLeaveApplications, getLeaveBalance } from '$lib/services';
 import type { PageLoad } from './$types';
 
 
@@ -23,7 +22,7 @@ export const load: PageLoad = async ({ params }) => {
   const days = await db.select<LeaveDate[]>("SELECT * FROM leave_date WHERE leave_fk = ?", [params.id])
 
   const allApprovedLeave = await getLeaveApplications(userLeave.user_fk, {
-    approveStatus: "approve_only",
+    approvalStatus: "approved",
     leaveType: userLeave.leave_type
   })
 
@@ -34,10 +33,12 @@ export const load: PageLoad = async ({ params }) => {
     allApproveLeaveDates = [...theDays, ...allApproveLeaveDates]
   }
 
+  const leaveBalance = await getLeaveBalance(userLeave.user_pk, { asOfDate: userLeave.date_file, leaveType: userLeave.leave_type })
+
   return {
     userLeave,
     days,
     allApproveLeaveDates,
-    leaveLeft: countTotalLeaveDays(allApprovedLeave)
+    leaveLeft: leaveBalance
   }
 };

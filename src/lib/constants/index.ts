@@ -4,6 +4,9 @@ export const LEAVE_TYPE_MAP = {
 } as const
 export type LeaveTypeKey = keyof typeof LEAVE_TYPE_MAP
 export type LeaveTypeValue = typeof LEAVE_TYPE_MAP[keyof typeof LEAVE_TYPE_MAP];
+export type LeaveTypeEntry = {
+  [K in keyof typeof LEAVE_TYPE_MAP]: [K, typeof LEAVE_TYPE_MAP[K]];
+}[keyof typeof LEAVE_TYPE_MAP];
 
 export const PASS_SLIP_TYPE_MAP = {
   PERSONAL: "Personal Pass Slip",
@@ -11,6 +14,11 @@ export const PASS_SLIP_TYPE_MAP = {
 } as const
 export type PassSlipTypeKey = keyof typeof PASS_SLIP_TYPE_MAP
 export type PassSlipTypeValue = typeof PASS_SLIP_TYPE_MAP[keyof typeof PASS_SLIP_TYPE_MAP];
+
+export const DEFAULT_SETTINGS = {
+  maxWellnessLeave: 5,
+  maxPersonalLeave: 2,
+} as const
 
 export * from "./months";
 

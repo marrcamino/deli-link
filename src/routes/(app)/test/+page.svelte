@@ -1,5 +1,4 @@
 <script lang="ts">
-  import SampleList from "$lib/components/display/sample-list.svelte";
 </script>
 
 <form onsubmit={(e) => e.preventDefault()} class="p-8">
@@ -7,5 +6,3 @@
     Save
   </button>
 </form>
-
-<SampleList />

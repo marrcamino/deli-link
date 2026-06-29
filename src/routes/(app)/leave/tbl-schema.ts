@@ -1,12 +1,19 @@
+import { divWrap } from "$lib/components/display/div-wrapper.svelte";
+import { renderComponent } from "$lib/components/ui/data-table/index.js";
 import { tableRowNumber } from "$lib/helper";
 import { formatFullName } from "$lib/utils";
 import type { ColumnDef } from "@tanstack/table-core";
 import TblActions from "./tbl-actions.svelte";
-import { renderComponent } from "$lib/components/ui/data-table/index.js";
-import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 import TblCellTotalPending from "./tbl-cell-total-pending.svelte";
+import TblCellUsedLeave from "./tbl-cell-used-leave.svelte";
 
-export const columns: ColumnDef<User, unknown>[] = [
+export type UserWithLeaveStatus = User & {
+  wellnesslLeaveBal: number,
+  personalLeaveBal: number,
+  wellnessPending: number
+  personalPending: number
+}
+export const columns: ColumnDef<UserWithLeaveStatus, unknown>[] = [
   {
     id: "number",
     header: "#",
@@ -19,15 +26,15 @@ export const columns: ColumnDef<User, unknown>[] = [
     cell: ({ row }) => formatFullName(row.original, { abbreviateMiddle: true })
   },
   {
-    id: "used-leave",
-    header: "USED LEAVE",
+    id: "leave-bal",
+    header: () => divWrap("LEAVE BALANCE", 'text-center'),
     cell: ({ row }) =>
       renderComponent(TblCellUsedLeave, { user: row.original }),
 
   },
   {
     id: "total-pending",
-    header: "TOTAL PENDING",
+    header: () => divWrap("PENDING", 'text-center'),
     cell: ({ row }) =>
       renderComponent(TblCellTotalPending, { user: row.original }),
   },
