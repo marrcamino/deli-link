@@ -1,6 +1,7 @@
 <script lang="ts">
   import Asterisk from "$lib/components/display/asterisk.svelte";
   import DatePicker from "$lib/components/inputs/date/date-picker.svelte";
+  import PassSlipTypeSelector from "$lib/components/inputs/pass-slip-type-selector.svelte";
   import SignatorySelector from "$lib/components/signatory/signatory-selector.svelte";
   import Button from "$lib/components/ui/button/button.svelte";
   import { buttonVariants } from "$lib/components/ui/button/index.js";
@@ -9,6 +10,7 @@
   import { Input } from "$lib/components/ui/input/index.js";
   import Label from "$lib/components/ui/label/label.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
+  import type { PassSlipTypeKey } from "$lib/constants";
   import {
     formatTime,
     IntlDateHelper,
@@ -17,15 +19,12 @@
   } from "$lib/utils";
   import { type DateValue } from "@internationalized/date";
   import { Calendar as CalendarIcon, CircleAlert, Clock } from "@lucide/svelte";
+  import { invoke } from "@tauri-apps/api/core";
   import { untrack } from "svelte";
+  import { toast } from "svelte-sonner";
   import { quintOut } from "svelte/easing";
   import { fade, slide } from "svelte/transition";
-  import PassSlipTypeSelector from "$lib/components/inputs/pass-slip-type-selector.svelte";
   import { getPassSlipContext } from "./context.svelte";
-  import { invoke } from "@tauri-apps/api/core";
-  import type { PassSlipTypeKey } from "$lib/constants";
-  import { toast } from "svelte-sonner";
-  import * as Alert from "$lib/components/ui/alert/index.js";
 
   interface Props {
     passSlipToEdit?: PassSlip;
@@ -48,34 +47,190 @@
 
   let startTime = $state("08:00");
   let endTime = $state("17:00");
-  let endTimeMinValue = $state("09:00");
-  let endTimeMaxValue = $state("17:00");
+  let endTimeMinValue = $state("08:00");
+
+  let startTimeInput: HTMLInputElement | null = $state(null);
+  let endTimeInput: HTMLInputElement | null = $state(null);
+  let formRef: HTMLFormElement | null = null;
+  let startTimeError = $state("");
+  let endTimeError = $state("");
 
   let signatoryValue = $state("");
+  type TimeParts = {
+    hour: number;
+    minute: number;
+  };
+  const BTN_PRESET_LABELS = [
+    "Whole Day",
+    "Morning Only",
+    "Afternoon Only",
+    "Reset Values",
+  ] as const;
+
+  type BtnPresetLabel = (typeof BTN_PRESET_LABELS)[number];
+
   let noDateSelected = $state(false);
 
-  let isTimePresetIsDisabled = $derived(passSlipTypeValue === "PERSONAL");
-  let endTimeIsInvalid = $state(false);
+  function parseTimeString(time: string): TimeParts | null {
+    const [hourText, minuteText] = time.split(":");
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
 
-  $effect(() => {
-    passSlipTypeValue;
+    if (Number.isNaN(hour) || Number.isNaN(minute)) {
+      return null;
+    }
 
-    untrack(() => {
-      if (!passSlipTypeValue) {
-        endTimeMinValue = "17:00";
-        return;
+    return { hour, minute };
+  }
+
+  function isWholeHour(time: string) {
+    const parsed = parseTimeString(time);
+    if (!parsed) return false;
+    return parsed.minute === 0;
+  }
+
+  function isValidStartTimeValue(time: string) {
+    const parsed = parseTimeString(time);
+    if (!parsed || parsed.minute !== 0) return false;
+    if (parsed.hour === 12) return false;
+    return (
+      (parsed.hour >= 8 && parsed.hour <= 11) ||
+      (parsed.hour >= 13 && parsed.hour <= 17)
+    );
+  }
+
+  function isValidEndTimeValue(time: string) {
+    const parsed = parseTimeString(time);
+    if (!parsed || parsed.minute !== 0) return false;
+    return (
+      (parsed.hour >= 8 && parsed.hour <= 12) ||
+      (parsed.hour >= 13 && parsed.hour <= 17)
+    );
+  }
+
+  function getOfficeHoursBetween(start: string, end: string) {
+    const startParsed = parseTimeString(start);
+    const endParsed = parseTimeString(end);
+    if (!startParsed || !endParsed) return 0;
+
+    const startHour = startParsed.hour;
+    const endHour = endParsed.hour;
+    if (endHour <= startHour) return 0;
+
+    const officeWindows = [
+      { from: 8, to: 12 },
+      { from: 13, to: 17 },
+    ];
+
+    return officeWindows.reduce((total, window) => {
+      const overlapStart = Math.max(startHour, window.from);
+      const overlapEnd = Math.min(endHour, window.to);
+      return total + Math.max(0, overlapEnd - overlapStart);
+    }, 0);
+  }
+
+  function getStartTimeValidationMessage(time: string) {
+    if (!time.trim()) return "Start Time is required.";
+
+    if (!isWholeHour(time)) {
+      return "Start Time must be on the hour (e.g. 08:00AM or 01:00PM).";
+    }
+
+    if (time === "12:00") return "Start Time cannot be 12:00PM.";
+
+    if (!isValidStartTimeValue(time)) {
+      return "Start Time must be between 08:00AM\u201311:00AM or 01:00PM\u201304:00PM.";
+    }
+    return "";
+  }
+
+  function getEndTimeValidationMessage(time: string, startTimeValue: string) {
+    if (!time.trim()) return "End Time is required.";
+
+    if (!isWholeHour(time)) {
+      return "End Time must be on the hour (e.g. 12:00PM or 05:00PM).";
+    }
+
+    if (!isValidEndTimeValue(time)) {
+      return "End Time must be between 08:00AM\u201312:00PM or 01:00PM\u201305:00PM.";
+    }
+
+    const isStartValid = isValidStartTimeValue(startTimeValue);
+    if (isStartValid) {
+      if (time === startTimeValue) {
+        return "End Time must be later than Start Time.";
       }
-    });
-  });
 
-  function addHours(time: string, hoursToAdd: number = 1): string {
-    const [h, m] = time.split(":").map(Number);
+      const officeHours = getOfficeHoursBetween(startTimeValue, time);
+      if (officeHours < 1) {
+        return "Pass Slip must represent at least 1 office working hour.";
+      }
+    }
 
-    const newHour = (h + hoursToAdd) % 24;
+    return "";
+  }
 
-    return `${newHour.toString().padStart(2, "0")}:${m
-      .toString()
-      .padStart(2, "0")}`;
+  function validateStartTime() {
+    const message = getStartTimeValidationMessage(startTime);
+    startTimeError = message;
+    startTimeInput?.setCustomValidity(message || "");
+
+    if (!message && endTime) {
+      validateEndTime();
+    }
+
+    return !message;
+  }
+
+  function validateEndTime() {
+    const message = getEndTimeValidationMessage(endTime, startTime);
+    endTimeError = message;
+    endTimeInput?.setCustomValidity(message || "");
+    return !message;
+  }
+
+  function validateForm() {
+    validateStartTime();
+    validateEndTime();
+
+    if (formRef && !formRef.checkValidity()) {
+      formRef.reportValidity();
+      const invalidField = formRef.querySelector(":invalid");
+      if (invalidField instanceof HTMLElement) {
+        invalidField.focus();
+      }
+      return false;
+    }
+
+    return true;
+  }
+
+  function applyPreset(action: BtnPresetLabel) {
+    switch (action) {
+      case "Whole Day":
+        startTime = "08:00";
+        endTime = "17:00";
+        break;
+
+      case "Morning Only":
+        startTime = "08:00";
+        endTime = "12:00";
+        break;
+
+      case "Afternoon Only":
+        startTime = "13:00";
+        endTime = "17:00";
+        break;
+
+      case "Reset Values":
+        dateValues = [];
+        startTime = "08:00";
+        endTime = "17:00";
+        break;
+    }
+
+    startTimeError = "";
+    endTimeError = "";
   }
 
   async function savePassSlip(e: SubmitEvent) {
@@ -83,6 +238,10 @@
 
     if (!dateValues?.length) {
       noDateSelected = true;
+      return;
+    }
+
+    if (!validateForm()) {
       return;
     }
 
@@ -116,6 +275,13 @@
 
   async function updatePassSlip(e: SubmitEvent) {
     e.preventDefault();
+
+    if (!dateValues?.length) {
+      noDateSelected = true;
+      return;
+    }
+
+    validateForm();
   }
 
   // Show/hide selected date and time
@@ -127,14 +293,12 @@
     });
   });
 
-  // Set end time min value
+  // Keep end time min updated when start time changes
   $effect(() => {
     startTime;
 
     untrack(() => {
-      if (!startTime.trim()) return;
-      endTimeMinValue = addHours(startTime);
-      endTimeMaxValue = addHours(startTime, 2);
+      endTimeMinValue = startTime || "08:00";
     });
   });
 </script>
@@ -142,6 +306,7 @@
 <Dialog.Root bind:open={ctx.addEditDialogState}>
   <Dialog.Content class="sm:w-max">
     <form
+      bind:this={formRef}
       autocomplete="off"
       onsubmit={passSlipToEdit ? updatePassSlip : savePassSlip}
       class="grid gap-4"
@@ -171,10 +336,10 @@
                 />
               </Label>
             </div>
-            <div class="mt-2">
+            <div class="mt-2.5">
               <div class="w-max mt-auto">
-                <div class="mb-1 font-semibold leading-4">
-                  Select multiple dates <Asterisk />
+                <div class="mb-0.5 font-semibold leading-4 text-sm">
+                  Select Multiple Dates <Asterisk />
                 </div>
                 <Calendar
                   type="multiple"
@@ -199,11 +364,11 @@
               </Label>
             </div>
 
-            <div class="flex flex-col h-full mt-2">
-              <div class="mx-auto pt-0.5">
-                <div class="flex gap-2">
+            <div class="flex flex-col h-full mt-2 w-full">
+              <div class="pt-0.5">
+                <div class="flex gap-1.5">
                   <!-- START TIME -->
-                  <div>
+                  <div class="w-full">
                     <Label class="mb-1 gap-0.5" for="start_time">
                       Start Time <Asterisk />
                     </Label>
@@ -213,84 +378,69 @@
                       required
                       type="time"
                       step="3600"
+                      // Restricts the selection to whole hours
                       bind:value={startTime}
+                      bind:ref={startTimeInput}
+                      onblur={validateStartTime}
                       min="08:00"
-                      max="17:00"
-                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                      max="16:00"
+                      aria-invalid={startTimeError !== ""}
+                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-full"
                     />
                   </div>
 
                   <!-- END TIME -->
-                  <div>
+                  <div class="w-full">
                     <Label class="mb-1 gap-0.5" for="end_time">
                       End Time<Asterisk />
                     </Label>
                     <Input
                       id="end_time"
                       name="end_time"
-                      aria-invalid={endTimeIsInvalid}
                       required
                       type="time"
-                      step="1800"
+                      step="3600"
                       bind:value={endTime}
+                      bind:ref={endTimeInput}
+                      onblur={validateEndTime}
                       min={endTimeMinValue}
-                      max={endTimeMaxValue}
-                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-max"
+                      max="17:00"
+                      aria-invalid={endTimeError !== ""}
+                      class="text-center bg-background appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none w-full"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <div>
-                    <p class="text-destructive text-xs flex gap-1 pt-0.5">
-                      <CircleAlert class="size-3.5 flex-none mt-0.5" />
-                      <span>
-                        Please select a time on the hour &lpar;like 8:00 or
-                        9:00&rpar;.
-                      </span>
-                    </p>
-                  </div>
+                <div class="text-destructive text-xs flex gap-1.5 pt-1 grow">
+                  {#if startTimeError || endTimeError}
+                    <CircleAlert class="size-3.5 flex-none mt-0.5" />
+                    <div>
+                      {#if startTimeError}
+                        <p>
+                          {startTimeError}
+                        </p>
+                      {/if}
+                      {#if endTimeError}
+                        <p>{endTimeError}</p>
+                      {/if}
+                    </div>
+                  {/if}
                 </div>
               </div>
 
               <!-- BUTTONS -->
               <div class="mt-auto grid gap-1">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isTimePresetIsDisabled}
-                  onclick={() => {
-                    startTime = "08:00";
-                    endTime = "17:00";
-                  }}>Whole Day</Button
-                >
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isTimePresetIsDisabled}
-                  onclick={() => {
-                    startTime = "08:00";
-                    endTime = "12:00";
-                  }}>Morning Only</Button
-                >
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={isTimePresetIsDisabled}
-                  onclick={() => {
-                    startTime = "13:00";
-                    endTime = "17:00";
-                  }}>Afternoon Only</Button
-                >
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onclick={() => {
-                    dateValues = [];
-                    startTime = "08:00";
-                    endTime = "17:00";
-                  }}>Reset Values</Button
-                >
+                {#each BTN_PRESET_LABELS as BTN_PRESET_LABEL}
+                  <Button
+                    size="sm"
+                    variant={BTN_PRESET_LABEL === "Reset Values"
+                      ? "secondary"
+                      : "outline"}
+                    onclick={() => applyPreset(BTN_PRESET_LABEL)}
+                  >
+                    {BTN_PRESET_LABEL}
+                  </Button>
+                {/each}
               </div>
             </div>
           </div>
