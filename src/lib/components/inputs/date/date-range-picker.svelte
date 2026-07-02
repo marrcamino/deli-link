@@ -110,7 +110,7 @@
         onValueChange={() => {
           if (startDateValue) {
             setEndDateValues();
-            endDateOpenState = true;
+            if (!isPresent) endDateOpenState = true;
           }
           onValueChange?.({ startDate: startDateValue, endDate: endDateValue });
         }}
@@ -130,7 +130,6 @@
         <Checkbox
           id="endDateIsPresent"
           bind:checked={isPresent}
-          disabled={!startDateValue}
           name="endDateIsPresent"
           value={isPresent ? "1" : "0"}
         />
@@ -150,9 +149,9 @@
       </div>
       <div data-present={isPresent ? "" : null} class="relative group/date">
         <div
-          class="pointer-events-none group-data-present/date:opacity-50 transition-opacity opacity-0 px-3.5 rounded-sm z-10 absolute pt-2.25 inset-0.5 font-normal"
+          class="pointer-events-none group-data-present/date:opacity-50 transition-opacity opacity-0 px-2 rounded-sm z-10 absolute pt-2.25 inset-0.5 font-normal"
         >
-          Present
+          PRESENT
         </div>
         <DatePicker
           closeOnDateSelect

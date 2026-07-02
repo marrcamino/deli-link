@@ -76,7 +76,7 @@
     {/snippet}
   </Popover.Trigger>
   <Popover.Content class={cn("w-40 p-0", width)}>
-    <Command.Root bind:value disablePointerSelection>
+    <Command.Root>
       <Command.Input placeholder="Select Month..." />
       <Command.List>
         <Command.Empty>No month found.</Command.Empty>

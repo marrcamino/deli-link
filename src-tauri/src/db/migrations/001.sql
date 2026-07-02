@@ -35,10 +35,15 @@ CREATE TABLE IF NOT EXISTS leave_date (
   FOREIGN KEY (leave_fk) REFERENCES leave_application (leave_pk) ON DELETE CASCADE
 );
 CREATE TABLE IF NOT EXISTS signatory (
-  signatory_pk INTEGER PRIMARY KEY AUTOINCREMENT,
-  name TEXT NOT NULL,
-  position TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  signatory_pk INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+  full_name TEXT NOT NULL,
+  position_title TEXT NOT NULL,
+  effective_from TEXT NOT NULL,
+  -- 'YYYY-MM-DD'
+  effective_until TEXT NULL,
+  -- NULL = currently active
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS pass_slip (
   pass_slip_pk INTEGER PRIMARY KEY AUTOINCREMENT,

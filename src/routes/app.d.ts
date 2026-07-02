@@ -48,11 +48,17 @@ declare global {
   }
 
   interface Signatory {
-    signatory_pk: number
-    name: string
-    position: string
+    signatory_pk: number;
+    full_name: string;
+    position_title: string;
+    /** ex. 1999-01-01 */
+    effective_from: string;
+    /** ex. 1999-01-01 */
+    effective_until: string | null
     /** ex. 1999-01-01 06:30:55 */
-    created_at: string;
+    created_at: string
+    /** ex. 1999-01-01 06:30:55 */
+    updated_at: string
   }
 
   interface PassSlip {
