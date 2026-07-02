@@ -6,9 +6,11 @@
   import { Label } from "$lib/components/ui/label/index.js";
   import Textarea from "$lib/components/ui/textarea/textarea.svelte";
   import { getDBConn } from "$lib/db";
-  import { NativeDateHelper } from "$lib/utils";
+  import { IntlDateHelper } from "$lib/utils";
+  import { type DateValue } from "@internationalized/date";
   import { untrack } from "svelte";
   import { toast } from "svelte-sonner";
+  import DateRangePicker from "../inputs/date/date-range-picker.svelte";
 
   interface Props {
     open?: boolean;
@@ -16,11 +18,27 @@
     signatoryToUpdate?: Signatory;
   }
 
-  let { open = $bindable(), afterSave, signatoryToUpdate }: Props = $props();
+  let {
+    open = $bindable(false),
+    afterSave,
+    signatoryToUpdate,
+  }: Props = $props();
 
   let isSaving = $state(false);
-  let name = $state("");
-  let position = $state("");
+  let full_name = $state("");
+  let position_title = $state("");
+  let isPresent = $state(false);
+  let effective_from: DateValue | undefined = $state(undefined);
+  let effective_until: DateValue | undefined = $state(undefined);
+
+  function buildSignatoryValues() {
+    return [
+      full_name,
+      position_title,
+      effective_from?.toString(),
+      isPresent ? null : effective_until?.toString(),
+    ];
+  }
 
   async function saveNewSignatory(e: SubmitEvent) {
     e.preventDefault();
@@ -28,31 +46,29 @@
     try {
       isSaving = false;
       const db = await getDBConn();
-      const currentTimestamp = NativeDateHelper.currentTimestamp;
-      const res = await db.execute(
-        "INSERT INTO signatory (name, position, created_at) VALUES (?, ?, ?)",
-        [name, position, currentTimestamp],
+      const res = await db.select<Signatory[]>(
+        "INSERT INTO signatory (full_name, position_title, effective_from, effective_until) VALUES (?, ?, ?, ?) RETURNING *;",
+        buildSignatoryValues(),
       );
 
-      if (!res.lastInsertId) {
+      console.log(res);
+
+      if (!res.length) {
         toast.error("There was an error while saving signatory", {
           description: "Please try again",
         });
         return;
       }
 
-      const newInsertedId = res.lastInsertId as number;
-
-      afterSave?.({
-        signatory_pk: newInsertedId,
-        name,
-        position,
-        created_at: currentTimestamp,
-      });
+      afterSave?.(res[0]);
       toast.success("Signatory saved successfully");
+
       open = false;
     } catch (error) {
       console.error(error);
+      toast.error("There was an error while saving signatory", {
+        description: "Please try again",
+      });
     } finally {
       isSaving = false;
     }
@@ -66,24 +82,19 @@
       isSaving = false;
       const db = await getDBConn();
 
-      const res = await db.execute(
-        "UPDATE signatory SET name = ?, position = ? WHERE signatory_pk = ?",
-        [name, position, signatoryToUpdate.signatory_pk],
+      const res = await db.select<Signatory[]>(
+        "UPDATE signatory SET full_name = ?, position_title = ?, effective_from = ?, effective_until = ?, updated_at = CURRENT_TIMESTAMP WHERE signatory_pk = ? RETURNING *;",
+        [...buildSignatoryValues(), signatoryToUpdate.signatory_pk],
       );
 
-      if (res.rowsAffected === 0) {
+      if (!res.length) {
         toast.error("There was an error while updating signatory", {
           description: "Please try again",
         });
         return;
       }
 
-      afterSave?.({
-        signatory_pk: signatoryToUpdate.signatory_pk,
-        name: signatoryToUpdate.name,
-        position: signatoryToUpdate.position,
-        created_at: signatoryToUpdate.created_at,
-      });
+      afterSave?.(res[0]);
 
       toast.success("Signatory updated successfully");
       open = false;
@@ -99,8 +110,16 @@
 
     untrack(() => {
       if (!open || !signatoryToUpdate) return;
-      name = signatoryToUpdate.name;
-      position = signatoryToUpdate.position;
+      full_name = signatoryToUpdate.full_name;
+      position_title = signatoryToUpdate.position_title;
+      effective_from = IntlDateHelper.toDateValue(
+        signatoryToUpdate.effective_from,
+      );
+      if (signatoryToUpdate.effective_until) {
+        effective_until = IntlDateHelper.toDateValue(
+          signatoryToUpdate.effective_until,
+        );
+      } else isPresent = true;
     });
   });
 </script>
@@ -109,12 +128,15 @@
   bind:open
   onOpenChangeComplete={(open) => {
     if (!open) {
-      name = "";
-      position = "";
+      full_name = "";
+      position_title = "";
+      isPresent = false;
+      effective_from = undefined;
+      effective_until = undefined;
     }
   }}
 >
-  <Dialog.Content class="sm:max-w-100">
+  <Dialog.Content class="sm:max-w-110">
     <form
       class="grid gap-4"
       onsubmit={signatoryToUpdate ? updateSignatory : saveNewSignatory}
@@ -130,24 +152,41 @@
       </Dialog.Header>
       <div class="grid gap-4">
         <div class="grid gap-1">
-          <Label for="name" class="gap-0.5">
-            Name <Asterisk />
+          <Label for="full-name" class="gap-0.5">
+            Fullname <Asterisk />
           </Label>
-          <Input id="name" name="name" required bind:value={name} />
+          <Input
+            id="full-name"
+            name="full-name"
+            required
+            bind:value={full_name}
+          />
         </div>
         <div class="grid gap-1">
-          <Label for="signatory-position" class="gap-0.5">
-            Position <Asterisk />
+          <Label for="position-title" class="gap-0.5">
+            Position Title<Asterisk />
           </Label>
           <Textarea
-            id="signatory-position"
-            name="signatory-position"
+            id="position-title"
+            name="position-title"
+            bind:value={position_title}
             required
-            bind:value={position}
             autoHeight
             autoTrim
           />
         </div>
+      </div>
+
+      <div class="mt-1">
+        <DateRangePicker
+          bind:startDateValue={effective_from}
+          bind:endDateValue={effective_until}
+          bind:isPresent
+          allowPresent
+          allRequired
+          startDateLabel="Effective From"
+          endDateLabel="Effective Until"
+        />
       </div>
       <Dialog.Footer>
         <Dialog.Close

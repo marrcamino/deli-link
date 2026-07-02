@@ -26,7 +26,7 @@
     minDate?: DateValue;
     onValueChange?: (value: DateValue | undefined) => void;
     onOpenChangeComplete?: (open: boolean) => void;
-    onClipboardPirmissionGranted?: (granted: boolean) => void;
+    onClipboardPermissionGranted?: (granted: boolean) => void;
     triggerOptions?: {
       class?: string | null;
       withIcon?: boolean;
@@ -46,7 +46,7 @@
     required,
     name,
     onOpenChangeComplete,
-    onClipboardPirmissionGranted,
+    onClipboardPermissionGranted,
     triggerOptions,
     onValueChange,
     disabled,
@@ -106,7 +106,7 @@
         value = parsedDate;
         open = false;
         onValueChange?.(value);
-        onClipboardPirmissionGranted?.(true);
+        onClipboardPermissionGranted?.(true);
       } catch (err) {
         toast.error("Clipboard access blocked", {
           description: "Enable clipboard permission in your browser.",
@@ -173,7 +173,7 @@
     {/if}
   </Popover.Trigger>
 
-  <Popover.Content bind:ref={contentRef} class="w-auto p-0">
+  <Popover.Content bind:ref={contentRef} class="w-auto p-0" >
     <!-- <div class="text-right pt-2 pr-2"><Button variant="outline" size="sm">To present</Button></div> -->
     <Calendar
       onValueChange={(value) => {
