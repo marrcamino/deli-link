@@ -1,4 +1,5 @@
 <script lang="ts">
+  import ApproveBadgeIndicator from "$lib/components/display/approve-badge-indicator.svelte";
   import * as Card from "$lib/components/ui/card";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
   import { LEAVE_TYPE_MAP } from "$lib/constants";
@@ -16,7 +17,6 @@
     Undo2,
   } from "@lucide/svelte";
   import { fade } from "svelte/transition";
-  import ApproveBadgeIndicator from "./approve-badge-indicator.svelte";
   import { getLeaveContext } from "./context.svelte";
 
   interface Props {

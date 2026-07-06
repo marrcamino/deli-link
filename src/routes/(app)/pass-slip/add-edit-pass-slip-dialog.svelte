@@ -235,6 +235,26 @@
     startTimeError = "";
     endTimeError = "";
   }
+  
+  function getInputValues(pass_slip_pk?: number) {
+    const base = {
+      start_time: startTime,
+      end_time: endTime,
+      reason: reasonValue,
+      is_approved: Number(isApprove) as Bit,
+      signatory_fk: Number(signatoryValue),
+      slip_type: passSlipTypeValue!,
+      user_fk: ctx.openUser!.user_pk,
+      filed_at: dateFile.toString(),
+    };
+
+    return pass_slip_pk
+      ? ({ pass_slip_pk, ...base } as Omit<
+          PassSlip,
+          "created_at" | "updated_at"
+        >)
+      : (base as Omit<PassSlip, "pass_slip_pk" | "created_at" | "updated_at">);
+  }
 
   // INSERTING AND UPDATING
   async function savePassSlip(e: SubmitEvent) {
@@ -248,22 +268,8 @@
     if (!validateForm()) return;
 
     try {
-      const passSlipToInsert: Omit<
-        PassSlip,
-        "pass_slip_pk" | "created_at" | "updated_at"
-      > = {
-        start_time: startTime,
-        end_time: endTime,
-        reason: reasonValue,
-        is_approved: Number(isApprove) as Bit,
-        signatory_fk: Number(signatoryValue),
-        slip_type: passSlipTypeValue!,
-        user_fk: ctx.openUser!.user_pk,
-        filed_at: dateFile.toString(),
-      };
-
       const res: DbResponse = await invoke("save_pass_slip", {
-        passSlip: passSlipToInsert,
+        passSlip: getInputValues(),
         dates: dateValues
           .map((d) => d.toString())
           .map((d) => ({ date_value: d })),
@@ -295,25 +301,8 @@
 
     validateForm();
 
-    const passSlipToUpdate: Pick<
-      PassSlip,
-      | "pass_slip_pk"
-      | "signatory_fk"
-      | "slip_type"
-      | "user_fk"
-      | "is_approved"
-      | "filed_at"
-    > = {
-      pass_slip_pk: ctx.openSlip.pass_slip_pk,
-      is_approved: ctx.openSlip.is_approved,
-      signatory_fk: Number(signatoryValue),
-      slip_type: passSlipTypeValue!,
-      user_fk: ctx.openUser!.user_pk,
-      filed_at: dateFile.toString(),
-    };
-
     const res: DbResponse = await invoke("update_pass_slip", {
-      passSlip: passSlipToUpdate,
+      passSlip: getInputValues(ctx.openSlip.pass_slip_pk),
       dates: dateValues
         .map((d) => d.toString())
         .map((d) => ({ date_value: d })),
@@ -352,17 +341,17 @@
       if (!ctx.openSlip || !ctx.addEditDialogState) return;
 
       const openSlip = ctx.openSlip;
-      console.log($state.snapshot(openSlip));
+      // console.log($state.snapshot(openSlip));
 
-      // passSlipTypeValue = openSlip.slip_type;
-      // dateFile = IntlDateHelper.toDateValue(openSlip.filed_at);
-      // dateValues = IntlDateHelper.toDateValues(
-      //   openSlip.dates.map((d) => d.date_value),
-      // );
-      // startTime = openSlip.start_time;
-      // endTime = openSlip.end_time;
-      // reasonValue = openSlip.reason;
-      // signatoryValue = openSlip.signatory_fk.toString();
+      passSlipTypeValue = openSlip.slip_type;
+      dateFile = IntlDateHelper.toDateValue(openSlip.filed_at);
+      dateValues = IntlDateHelper.toDateValues(
+        openSlip.dates.map((d) => d.date_value),
+      );
+      startTime = openSlip.start_time;
+      endTime = openSlip.end_time;
+      reasonValue = openSlip.reason;
+      signatoryValue = openSlip.signatory_fk.toString();
     });
   });
 </script>

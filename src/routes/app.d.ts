@@ -64,7 +64,9 @@ declare global {
   interface PassSlip {
     pass_slip_pk: number;
     user_fk: User["user_pk"];
+    /** ex. 13:30 */
     start_time: string;
+    /** ex. 17:30 */
     end_time: string;
     slip_type: PassSlipTypeKey;
     reason: string;

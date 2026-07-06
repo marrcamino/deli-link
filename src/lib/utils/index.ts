@@ -38,45 +38,45 @@ export function mapToOptions<T extends string | number>(
   }));
 }
 
+
 /**
- * Converts a 24-hour time string (`HH:mm:ss`) into a 12-hour formatted time.
+ * Formats a count with the correct singular or plural form of a word.
  *
- * Optionally removes the seconds portion of the output.
+ * If `plural` is not provided, it defaults to `singular` with an "s" appended.
  *
- * @param time - Time string in 24-hour format (`HH:mm:ss`)
- * @param excludeSeconds - If `true`, removes the seconds from the output. Defaults to `false`
- * @returns A formatted 12-hour time string with `AM` or `PM`
- *
- * @example
- * to12HourTime("08:16:38")
- * // "08:16:38 AM"
+ * @param count - The number used to determine singular or plural form
+ * @param singular - The singular form of the word
+ * @param plural - The plural form of the word. Defaults to `singular + "s"`
+ * @returns A string combining the count and the correctly pluralized word
  *
  * @example
- * to12HourTime("14:05:10", true)
- * // "02:05 PM"
+ * ```ts
+ * pluralize(1, "day")
+ * // "1 day"
+ * ```
+ *
+ * @example
+ * ```ts
+ * pluralize(5, "day")
+ * // "5 days"
+ * ```
+ *
+ * @example
+* ```ts
+ * pluralize(2, "child", "children")
+ * // "2 children"
+ * ``` 
  */
-export function formatTime(
-  time: string,
-  excludeSeconds: boolean = true
+export function pluralize(
+  count: number,
+  singular: string,
+  plural?: string
 ): string {
-  const [h, m, s] = time.split(":").map(Number);
-
-  const period = h >= 12 ? "PM" : "AM";
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-
-  const hour = String(hour12).padStart(2, "0");
-  const minute = String(m).padStart(2, "0");
-  const second = String(s).padStart(2, "0");
-
-  if (excludeSeconds) {
-    return `${hour}:${minute} ${period}`;
-  }
-
-  return `${hour}:${minute}:${second} ${period}`;
+  return `${count} ${count > 1 ? plural ?? singular + "s" : singular}`;
 }
-
 
 export * from "./windows"
 export * from "./date-utils"
 export * from "./name-formatter"
+export * from "./time-utils"
 export * from "./date-prettifier"

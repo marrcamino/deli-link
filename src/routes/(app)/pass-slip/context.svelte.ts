@@ -37,7 +37,7 @@ class PassSlipContext {
     this.passSlips = [passSlip, ...this.passSlips]
   }
 
-  removeLeave(pass_slip_pk: number) {
+  removePassSlip(pass_slip_pk: number) {
     this.passSlips = this.passSlips.filter(p => p.pass_slip_pk !== pass_slip_pk)
   }
 

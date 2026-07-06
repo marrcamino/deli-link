@@ -76,3 +76,34 @@ export async function getPassSlipsWithDates(
     dates: dateMap.get(passSlip.pass_slip_pk) ?? []
   }));
 }
+
+type DeletePassSlipResult =
+  | { success: true; pass_slip_pk: number }
+  | { success: false; message: string };
+
+export async function deletePassSlip(
+  pass_slip_pk: PassSlip["pass_slip_pk"]
+): Promise<DeletePassSlipResult> {
+  try {
+    const db = await getDBConn();
+
+    const res = await db.execute(
+      "DELETE FROM pass_slip WHERE pass_slip_pk = ?",
+      [pass_slip_pk]
+    );
+
+    if (!res.rowsAffected) {
+      return {
+        success: false,
+        message: "There was an error while deleting pass slip",
+      };
+    }
+
+    return { success: true, pass_slip_pk };
+  } catch (err) {
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Unknown database error",
+    };
+  }
+}
