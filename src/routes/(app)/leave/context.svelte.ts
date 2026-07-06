@@ -150,8 +150,6 @@ class LeaveContext {
     this.loadLeaveApplications(user.user_pk)
     this.openUser = user
   }
-
-
 }
 
 

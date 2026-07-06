@@ -6,56 +6,48 @@
   import Button from "$lib/components/ui/button/button.svelte";
   import { buttonVariants } from "$lib/components/ui/button/index.js";
   import { Calendar } from "$lib/components/ui/calendar/index.js";
+  import { Checkbox } from "$lib/components/ui/checkbox/index.js";
   import * as Dialog from "$lib/components/ui/dialog/index.js";
   import { Input } from "$lib/components/ui/input/index.js";
   import Label from "$lib/components/ui/label/label.svelte";
   import { Textarea } from "$lib/components/ui/textarea";
   import type { PassSlipTypeKey } from "$lib/constants";
-  import {
-    formatTime,
-    IntlDateHelper,
-    NativeDateHelper,
-    prettifyDates,
-  } from "$lib/utils";
+  import { type PassSlipWithDates } from "$lib/types";
+  import { formatTime, IntlDateHelper, prettifyDates } from "$lib/utils";
   import { type DateValue } from "@internationalized/date";
   import { Calendar as CalendarIcon, CircleAlert, Clock } from "@lucide/svelte";
   import { invoke } from "@tauri-apps/api/core";
-  import { untrack } from "svelte";
+  import { tick, untrack } from "svelte";
   import { toast } from "svelte-sonner";
   import { quintOut } from "svelte/easing";
   import { fade, slide } from "svelte/transition";
   import { getPassSlipContext } from "./context.svelte";
 
-  interface Props {
-    passSlipToEdit?: PassSlip;
-    afterSave?: (passSlip: PassSlip) => void;
-  }
   interface DbResponse {
     success: boolean;
     message: string;
-    data: PassSlip & {
-      dates: PassSlipDate[];
-    };
+    data: PassSlipWithDates;
   }
 
-  let { passSlipToEdit, afterSave }: Props = $props();
-
   const ctx = getPassSlipContext();
-  let dateValues: DateValue[] | undefined = $state([]);
-  let passSlipTypeValue: PassSlipTypeKey | undefined = $state();
+  let passSlipTypeValue: PassSlipTypeKey = $state("PERSONAL");
   let dateFile = $state(IntlDateHelper.today);
 
+  let dateValues: DateValue[] | undefined = $state([]);
   let startTime = $state("08:00");
   let endTime = $state("17:00");
-  let endTimeMinValue = $state("08:00");
-
-  let startTimeInput: HTMLInputElement | null = $state(null);
-  let endTimeInput: HTMLInputElement | null = $state(null);
-  let formRef: HTMLFormElement | null = null;
-  let startTimeError = $state("");
-  let endTimeError = $state("");
-
+  let reasonValue = $state("");
   let signatoryValue = $state("");
+  let isApprove = $state(true);
+
+  let endTimeMinValue = $state("08:00");
+  let endTimeError = $state("");
+  let startTimeError = $state("");
+  let noDateSelected = $state(false);
+  let startTimeInputEl: HTMLInputElement | null = $state(null);
+  let endTimeInputEl: HTMLInputElement | null = $state(null);
+  let formRef: HTMLFormElement | null = null;
+
   type TimeParts = {
     hour: number;
     minute: number;
@@ -69,7 +61,18 @@
 
   type BtnPresetLabel = (typeof BTN_PRESET_LABELS)[number];
 
-  let noDateSelected = $state(false);
+  function resetFormValues() {
+    passSlipTypeValue = "PERSONAL";
+    dateFile = IntlDateHelper.today;
+    dateValues = [];
+
+    applyPreset("Reset Values");
+    startTimeError = "";
+    endTimeError = "";
+
+    reasonValue = "";
+    signatoryValue = "";
+  }
 
   function parseTimeString(time: string): TimeParts | null {
     const [hourText, minuteText] = time.split(":");
@@ -173,7 +176,7 @@
   function validateStartTime() {
     const message = getStartTimeValidationMessage(startTime);
     startTimeError = message;
-    startTimeInput?.setCustomValidity(message || "");
+    startTimeInputEl?.setCustomValidity(message || "");
 
     if (!message && endTime) {
       validateEndTime();
@@ -185,7 +188,7 @@
   function validateEndTime() {
     const message = getEndTimeValidationMessage(endTime, startTime);
     endTimeError = message;
-    endTimeInput?.setCustomValidity(message || "");
+    endTimeInputEl?.setCustomValidity(message || "");
     return !message;
   }
 
@@ -233,6 +236,7 @@
     endTimeError = "";
   }
 
+  // INSERTING AND UPDATING
   async function savePassSlip(e: SubmitEvent) {
     e.preventDefault();
 
@@ -241,20 +245,21 @@
       return;
     }
 
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
 
     try {
-      const passSlipToInsert: Omit<PassSlip, "pass_slip_pk"> = {
-        created_at: NativeDateHelper.currentTimestamp,
+      const passSlipToInsert: Omit<
+        PassSlip,
+        "pass_slip_pk" | "created_at" | "updated_at"
+      > = {
+        start_time: startTime,
         end_time: endTime,
-        filed_at: dateFile.toString(),
-        is_approved: 0,
+        reason: reasonValue,
+        is_approved: Number(isApprove) as Bit,
         signatory_fk: Number(signatoryValue),
         slip_type: passSlipTypeValue!,
-        start_time: startTime,
         user_fk: ctx.openUser!.user_pk,
+        filed_at: dateFile.toString(),
       };
 
       const res: DbResponse = await invoke("save_pass_slip", {
@@ -265,6 +270,11 @@
       });
 
       toast.success(res.message);
+
+      ctx.addEditDialogState = false;
+
+      await tick();
+      ctx.addPassSlip(res.data);
     } catch (error) {
       console.error(error);
       toast.error("There was an error while saving pass slip", {
@@ -276,15 +286,47 @@
   async function updatePassSlip(e: SubmitEvent) {
     e.preventDefault();
 
+    if (!ctx.openSlip) return;
+
     if (!dateValues?.length) {
       noDateSelected = true;
       return;
     }
 
     validateForm();
+
+    const passSlipToUpdate: Pick<
+      PassSlip,
+      | "pass_slip_pk"
+      | "signatory_fk"
+      | "slip_type"
+      | "user_fk"
+      | "is_approved"
+      | "filed_at"
+    > = {
+      pass_slip_pk: ctx.openSlip.pass_slip_pk,
+      is_approved: ctx.openSlip.is_approved,
+      signatory_fk: Number(signatoryValue),
+      slip_type: passSlipTypeValue!,
+      user_fk: ctx.openUser!.user_pk,
+      filed_at: dateFile.toString(),
+    };
+
+    const res: DbResponse = await invoke("update_pass_slip", {
+      passSlip: passSlipToUpdate,
+      dates: dateValues
+        .map((d) => d.toString())
+        .map((d) => ({ date_value: d })),
+    });
+
+    toast.success(res.message);
+
+    ctx.addEditDialogState = false;
+    await tick();
+    ctx.updatePassSlip(res.data);
   }
 
-  // Show/hide selected date and time
+  // Show/hide selected dates and time
   $effect(() => {
     dateValues;
     untrack(() => {
@@ -293,7 +335,7 @@
     });
   });
 
-  // Keep end time min updated when start time changes
+  // Set mininum end time when start time changes
   $effect(() => {
     startTime;
 
@@ -301,14 +343,44 @@
       endTimeMinValue = startTime || "08:00";
     });
   });
+
+  // Set values when dialog opens
+  $effect(() => {
+    ctx.addEditDialogState;
+
+    untrack(() => {
+      if (!ctx.openSlip || !ctx.addEditDialogState) return;
+
+      const openSlip = ctx.openSlip;
+      console.log($state.snapshot(openSlip));
+
+      // passSlipTypeValue = openSlip.slip_type;
+      // dateFile = IntlDateHelper.toDateValue(openSlip.filed_at);
+      // dateValues = IntlDateHelper.toDateValues(
+      //   openSlip.dates.map((d) => d.date_value),
+      // );
+      // startTime = openSlip.start_time;
+      // endTime = openSlip.end_time;
+      // reasonValue = openSlip.reason;
+      // signatoryValue = openSlip.signatory_fk.toString();
+    });
+  });
 </script>
 
-<Dialog.Root bind:open={ctx.addEditDialogState}>
+<Dialog.Root
+  bind:open={ctx.addEditDialogState}
+  onOpenChangeComplete={(open) => {
+    if (!open) {
+      resetFormValues();
+      ctx.openSlip = null;
+    }
+  }}
+>
   <Dialog.Content class="sm:w-max">
     <form
       bind:this={formRef}
       autocomplete="off"
-      onsubmit={passSlipToEdit ? updatePassSlip : savePassSlip}
+      onsubmit={ctx.openSlip ? updatePassSlip : savePassSlip}
       class="grid gap-4"
     >
       <Dialog.Header>
@@ -380,7 +452,7 @@
                       step="3600"
                       // Restricts the selection to whole hours
                       bind:value={startTime}
-                      bind:ref={startTimeInput}
+                      bind:ref={startTimeInputEl}
                       onblur={validateStartTime}
                       min="08:00"
                       max="16:00"
@@ -401,7 +473,7 @@
                       type="time"
                       step="3600"
                       bind:value={endTime}
-                      bind:ref={endTimeInput}
+                      bind:ref={endTimeInputEl}
                       onblur={validateEndTime}
                       min={endTimeMinValue}
                       max="17:00"
@@ -501,14 +573,25 @@
             autoTrim
             required
             placeholder="Type reason"
+            bind:value={reasonValue}
           />
         </div>
 
         <div class="pt-4">
-          <Label class="gap-1 grid">
+          <Label class="gap-1 grid ">
             <span>Signatory <Asterisk /></span>
-            <SignatorySelector required bind:value={signatoryValue} />
+            <SignatorySelector
+              required
+              name="signatory-name"
+              bind:value={signatoryValue}
+              width="w-116.5"
+            />
           </Label>
+        </div>
+
+        <div class="flex items-center gap-2 w-full mt-4">
+          <Checkbox id="isApprove" bind:checked={isApprove} />
+          <Label for="isApprove">Set as approved</Label>
         </div>
       </div>
 

@@ -19,7 +19,8 @@ pub fn run() {
             commands::logs::save_logs,
             commands::leave::save_leave_application,
             commands::leave::update_leave_application,
-            commands::pass_slip::save_pass_slip
+            commands::pass_slip::save_pass_slip,
+            commands::pass_slip::update_pass_slip,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,11 +1,8 @@
 import { getUsers, getPassSlipsWithDates } from "$lib/services";
+import type { PassSlipWithDates } from "$lib/types";
 import { getContext, setContext, untrack } from "svelte";
 
 const CONTEXT_KEY = Symbol("pass-slip-context");
-
-type PassSlipWithDates = PassSlip & {
-  dates: string[];
-};
 
 class PassSlipContext {
   users: User[] = $state([])
@@ -13,7 +10,7 @@ class PassSlipContext {
 
   // When editing
   openUser: User | null = $state(null)
-  openSlip: PassSlip | null = $state(null)
+  openSlip: PassSlipWithDates | null = $state(null)
 
   // Dialog and sheet states
   sheetState = $state(false)
@@ -28,11 +25,28 @@ class PassSlipContext {
     $effect(() => {
       this.openUser;
 
-      untrack(() => {
+      untrack(async () => {
         if (!this.openUser) return
-        getPassSlipsWithDates(this.openUser.user_pk).then(p => this.passSlips = p)
+        this.passSlips = await getPassSlipsWithDates(this.openUser.user_pk)
       })
     })
+  }
+
+
+  addPassSlip(passSlip: PassSlipWithDates) {
+    this.passSlips = [passSlip, ...this.passSlips]
+  }
+
+  removeLeave(pass_slip_pk: number) {
+    this.passSlips = this.passSlips.filter(p => p.pass_slip_pk !== pass_slip_pk)
+  }
+
+  updatePassSlip(passSlip: Partial<PassSlipWithDates> & { pass_slip_pk: number }) {
+    this.passSlips = this.passSlips.map((p) =>
+      p.pass_slip_pk === passSlip.pass_slip_pk
+        ? { ...p, ...passSlip }
+        : p
+    );
   }
 }
 

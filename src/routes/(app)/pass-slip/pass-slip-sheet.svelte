@@ -19,6 +19,7 @@
     Undo2,
     MapPin,
   } from "@lucide/svelte";
+  import { tick } from "svelte";
 
   const ctx = getPassSlipContext();
 </script>
@@ -92,7 +93,13 @@
                     <DropdownMenu.Separator />
 
                     <DropdownMenu.Group>
-                      <DropdownMenu.Item>
+                      <DropdownMenu.Item
+                        onclick={async () => {
+                          ctx.openSlip = passSlip;
+                          await tick();
+                          ctx.addEditDialogState = true;
+                        }}
+                      >
                         <Pencil class="size-4 mr-2" />
                         <span>Edit</span>
                       </DropdownMenu.Item>
@@ -120,7 +127,7 @@
                     <div class="text-sm">
                       <!-- Dates Display -->
                       <p class="font-semibold">
-                        {prettifyDates(passSlip.dates)}
+                        {prettifyDates(passSlip.dates.map((d) => d.date_value))}
                       </p>
 
                       <!-- Pass Slip Meta Info -->
@@ -140,12 +147,12 @@
                     class="absolute right-2 bottom-1.5 flex flex-col items-end gap-1"
                   >
                     <div class="flex items-center gap-2">
-                      <Badge
+                      <!-- <Badge
                         variant="outline"
                         class="bg-primary/5 text-primary border-primary/10 rounded-md px-2 py-0.5 text-[10px] font-bold"
                       >
                         {passSlip.start_time} - {passSlip.end_time}
-                      </Badge>
+                      </Badge> -->
 
                       <!-- Component from your reference -->
                       <!-- <ApproveBadgeIndicator is_approved={passSlip.is_approved} /> -->

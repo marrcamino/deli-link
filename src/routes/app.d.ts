@@ -67,12 +67,15 @@ declare global {
     start_time: string;
     end_time: string;
     slip_type: PassSlipTypeKey;
-    signatory_fk: Signatory['signatory_pk']
+    reason: string;
+    signatory_fk: Signatory["signatory_pk"]
     is_approved: Bit;
     /** ex. 1999-01-01 */
     filed_at: string;
     /** ex. 1999-01-01 06:30:55 */
     created_at: string;
+    /** ex. 1999-01-01 06:30:55 */
+    updated_at: string
   }
 
   interface PassSlipDate {

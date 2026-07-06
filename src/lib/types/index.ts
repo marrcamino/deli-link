@@ -14,3 +14,4 @@ export type UserPrefRow = {
 }[keyof UserPrefKeys]
 
 export type LeaveApplicationWithDate = LeaveApplication & { dates: LeaveDate[] }
+export type PassSlipWithDates = PassSlip & { dates: PassSlipDate[] }
