@@ -2,6 +2,7 @@
   import ApproveBadgeIndicator from "$lib/components/display/approve-badge-indicator.svelte";
   import * as Card from "$lib/components/ui/card";
   import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
+  import { updatePassSlipApproval } from "$lib/services";
   import type { PassSlipWithDates } from "$lib/types";
   import {
     cn,
@@ -22,6 +23,7 @@
     Undo2,
   } from "@lucide/svelte";
   import { tick } from "svelte";
+  import { toast } from "svelte-sonner";
   import { fade } from "svelte/transition";
   import { getPassSlipContext } from "./context.svelte";
 
@@ -53,17 +55,18 @@
         : "bg-blue-600/10 text-blue-600/80",
     ),
   );
-  // async function updateApproveState(id: number, approve: boolean) {
-  //   const db = await getDBConn();
-  //   await db.execute(
-  //     "UPDATE pass_slip SET is_approved = ? WHERE pass_slip_pk = ?",
-  //     [Number(approve), id],
-  //   );
-
-  //   ctx.updateSlip({ pass_slip_pk: id, is_approved: Number(approve) as Bit });
-
-  //   if (ctx.openUser) await ctx.refreshPassSlipInfo(ctx.openUser.user_pk);
-  // }
+  async function updateApproveState(id: number, approve: boolean) {
+    const result = await updatePassSlipApproval(id, Number(approve) as Bit);
+    if (!result.success) {
+      toast.error(result.message);
+      return;
+    }
+    toast.success("Pass slip approved");
+    ctx.updatePassSlip({
+      pass_slip_pk: id,
+      is_approved: Number(approve) as Bit,
+    });
+  }
 </script>
 
 <Card.Root
@@ -79,7 +82,7 @@
         <DropdownMenu.Group>
           <DropdownMenu.Item
             onclick={() => {
-              // updateApproveState(passSlip.pass_slip_pk, !passSlip.is_approved);
+              updateApproveState(passSlip.pass_slip_pk, !passSlip.is_approved);
             }}
           >
             {#if passSlip.is_approved}

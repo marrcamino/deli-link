@@ -77,13 +77,13 @@ export async function getPassSlipsWithDates(
   }));
 }
 
-type DeletePassSlipResult =
+type UpdateResult =
   | { success: true; pass_slip_pk: number }
   | { success: false; message: string };
 
 export async function deletePassSlip(
   pass_slip_pk: PassSlip["pass_slip_pk"]
-): Promise<DeletePassSlipResult> {
+): Promise<UpdateResult> {
   try {
     const db = await getDBConn();
 
@@ -96,6 +96,37 @@ export async function deletePassSlip(
       return {
         success: false,
         message: "There was an error while deleting pass slip",
+      };
+    }
+
+    return { success: true, pass_slip_pk };
+  } catch (err) {
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Unknown database error",
+    };
+  }
+}
+
+
+export async function updatePassSlipApproval(
+  pass_slip_pk: PassSlip["pass_slip_pk"],
+  is_approved: PassSlip["is_approved"]
+): Promise<UpdateResult> {
+  try {
+    const db = await getDBConn();
+
+    const res = await db.execute(
+      `UPDATE pass_slip
+       SET is_approved = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE pass_slip_pk = ?`,
+      [is_approved, pass_slip_pk]
+    );
+
+    if (!res.rowsAffected) {
+      return {
+        success: false,
+        message: "There was an error while updating pass slip approval",
       };
     }
 

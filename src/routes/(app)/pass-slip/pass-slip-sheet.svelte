@@ -93,7 +93,7 @@
         </EmptyStateWrapper>
 
         <div class="pb-15">
-          {#each ctx.passSlips as passSlip}
+          {#each ctx.passSlips as passSlip (passSlip.pass_slip_pk)}
             <AnimationWrapper {disableTransition}>
               <PassSlipCard {passSlip} />
             </AnimationWrapper>
